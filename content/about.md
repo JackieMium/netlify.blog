@@ -1,9 +1,10 @@
 ---
-title: About Hugo Ivy
-author: Yihui Xie
-date: '2017-08-06'
+title: 关于
+author: Jackie
+date: '2018-12-30'
 ---
 
-This Hugo theme was ported from [Ivy](https://github.com/dmulholland/ivy), a minimalist website generator built in Python. I don't have time to document this theme. You have to read the source code to understand what it can do. All I can say for now is that I love it. It is clean, minimal, and responsive.
-
-I hope you will enjoy this theme. The source code is [on Github](https://github.com/yihui/hugo-ivy). Happy hacking!
+- 我是一个热爱技术、热衷折腾的人。我不是程序员，本职是一名医学生，算半个开源爱好者。  
+- 初次接触 Linux 是在 2012 年左右，我最喜欢的 distro 是 Gentoo，目前使用 Debian。  
+- 我目前经常接触一些 R 语言数据整理和统计分析，所以博文大多数也都是与此相关。涉及到的有 R、Python、PostgreSQL，当然还有 Shell。我比较懒，所以博文都是记起来就更新一点，但是我一般会刻意写一些我自己实际碰到的很有必要写下来的，但网上资料却不是很多或不好找的东西；或者是经常用到但我又记不住需要一次一次查的。我同时也会记录一些日常碰到的问题和我自己的解决办法，有的时候写出来还不成熟，日后再看再改也可以理清脉络加深理解。  
+- 我是个美剧和电影爱好者，我也是个十足的红楼梦迷，有个很旧的 Kindle 4。我喜欢给安卓手机刷机体验类原生 ROM + 谷歌服务。我不喜欢足球篮球这些，甚至不怎么喜欢户外活动。不刷微博刷饭否，不看直播不玩游戏。

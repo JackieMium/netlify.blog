@@ -2,8 +2,6 @@
 title: Home
 ---
 
-[<img src="https://simpleicons.org/icons/github.svg" style="max-width:15%;min-width:40px;float:right;" alt="Github repo" />](https://github.com/yihui/hugo-ivy)
+我的个人博客从最开始 Hexo + GitHub Pages，然后嫌麻烦就迁移到 GitHub Issues，到这次迁移到 Hugo + Blogdown + GitHub +  Netlify，宗旨就是哪个简单方便用哪个。希望这是最后一次迁移了 :D
 
-This Hugo theme was ported from [Ivy](https://github.com/dmulholland/ivy), a minimalist website generator built in Python. I don't have time to document it. You have to read the source code to understand what it can do. Like Ivy, this theme is also released under [the Unlicense](https://en.wikipedia.org/wiki/Unlicense), which basically means you just do whatever you want.
-
-All pages not under the root directory of the website are listed below. You can also visit the list page of a single section, e.g., [posts](/post/), or [notes](/note/).
+我会写一些 Linux (Debian)、R 方面的东西，同时会涉及到 PostgreSQL、Python 等。
