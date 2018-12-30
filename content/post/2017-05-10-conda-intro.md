@@ -35,7 +35,7 @@ source activate root
 ```
 conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
 
-# 搜索时显示Cheel的地址
+# 搜索时显示 Channel 的地址
 conda config --set show_channel_urls yes
 ```
 
@@ -112,13 +112,13 @@ conda remove --name flowers --all
 
 导出环境到文件（方便其他人可以获得与你完全相同的环境，可以导出环境到文件）：
 
-1. 激活这一环境：
+- 激活这一环境：
 
 ```
 source activate env_name
 ```
 
-2. 导出环境到文件：
+- 导出环境到文件：
 
 ```python
 conda env export > environment.yml
@@ -126,7 +126,7 @@ conda env export > environment.yml
 
 导出的文件会包含 `pip` 和 `conda` 安装的包。
 
-3. 根据 `environment.yml` 新建环境
+- 根据 `environment.yml` 新建环境
 
 ```
 conda env create -f environment.yml
