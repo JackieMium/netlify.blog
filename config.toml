@@ -34,7 +34,7 @@ footnotereturnlinkcontents = "↩"
 
 [params]
     description = "Jackie's Personal Blog."
-    footer = "&copy; Jackie  @2018 | [Github](https://github.com/JackieMium) | [Twitter](https://twitter.com/JackieMiem)"
+    footer = "&copy; Jackie  @2018 | [Github](https://github.com/JackieMium) | [Twitter](https://mobile.twitter.com/JackieMiem)"
 
   highlightjsVersion = "9.12.0"
   highlightjsCDN = "//cdn.bootcss.com"
