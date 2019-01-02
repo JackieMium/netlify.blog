@@ -338,14 +338,10 @@ fi
 
 然后试了下 RStudio 终于，Fcitx 起来了。
 
-# 3. 总结
-
-哦对了，我自己编译的 `libfcitxplatforminputcontextplugin.so` 我建了一个 [repo](https://github.com/JackieMium/libfcitxplatforminputcontextplugin.so)，也许谁要用的话可以试一试，在知乎上碰到以为用 Ubuntu 16.04 的知友用了我编译的文件解决了 ta 的输入法问题，我表示很开心。我会尽量保持 Mendeley 和 Rstudio 更新后 `libfcitxplatforminputcontextplugin.so` 不可用就更新，欢迎提 issue 催更或者 PR。
-
-
 
 # 放在最后不代表不重要
 
+哦对了，我自己编译的 `libfcitxplatforminputcontextplugin.so` 我建了一个 [repo](https://github.com/JackieMium/libfcitxplatforminputcontextplugin.so)，也许谁要用的话可以试一试，在知乎上碰到以为用 Ubuntu 16.04 的知友用了我编译的文件解决了 ta 的输入法问题，我表示很开心。我会尽量保持 Mendeley 和 Rstudio 更新后 `libfcitxplatforminputcontextplugin.so` 不可用就更新，欢迎提 issue 催更或者 PR。
 
 - 20180113 更新：有人告诉我其实 Fcitx 的一位开发者之前写过类似的东西 :[A case study: how to compile a Fcitx platforminputcontext plugin for a proprietary software that uses Qt 5](https://www.csslayer.info/wordpress/fcitx-dev/a-case-study-how-to-compile-a-fcitx-platforminputcontext-plugin-for-a-proprietary-software-that-uses-qt-5/)。好吧，怪我之前为啥没看到啊 ....
 
