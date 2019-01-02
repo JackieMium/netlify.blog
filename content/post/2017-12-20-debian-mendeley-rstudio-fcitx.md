@@ -42,7 +42,7 @@ disable_comments: no
 
 # 2. 正文
 
-一直以来 QT-based App 下 fcitx 无法输入中文的问题都让我很恼火，用的比较多的 RStudio 先后两次去 Support 发帖无果，在他们的 GitHub 也发了 [Issue](https://github.com/rstudio/rstudio/issues/1903)，他们标记了 bug 之后就啥也没干。Mendeley 也去发帖过一次，官方回复大概意思是 “知道了，但是目前这个问题优先级很低”.....
+一直以来 Qt-based App 下 fcitx 无法输入中文的问题都让我很恼火，用的比较多的 RStudio 先后两次去 Support 发帖无果，在他们的 GitHub 也发了 [Issue](https://github.com/rstudio/rstudio/issues/1903)，他们标记了 bug 之后就啥也没干。Mendeley 也去发帖过一次，官方回复大概意思是 “知道了，但是目前这个问题优先级很低”.....
 
 其实以前用的是 Zotero 用来管理文献，也写过另一篇博文 [在 Debian 中使用 Zotero 文献管理软件](https://jiangjun.netlify.com/post/2017/05/debian-zotero/) ，后来软件某一次升级之后就打不开了..... 终端打开没有任何提示信息。可惜我整理得好好的文献库也没了。然后我就转到 Mendeley 了，Mendeley 比起来优点有：多终端同步，自带的 PDF 阅读器也支持高亮和注释，手机用 [Research App](https://www.researcher-app.com/) 连接到 Mendeley 后标记文章可以直接同步到 Mendeley。并且 Mendeley 支持倒入 Zotero 的文献库，所以最终我的 Zotero 虽然坏了但是文献库还是拯救出来了。
 
@@ -59,7 +59,7 @@ disable_comments: no
 
 先来说 Mendeley Desktop 吧，解决思路反正都一样。首先我们得知道软件用到的 Qt 是哪个版本。我们进入 Mendeley 的安装目录，不出意外的话应该是 `/opt/mendeleydesktop`。然后顺藤摸瓜就能找到 `/opt/mendeleydesktop/lib/qt` 这个路径，下面存了一堆 `libQt5xxx.so` 这样的 Qt5 库文件。随便找一个用来看 Qt 版本（这是更新的时候加的内容，所以 Qt 版本已经不再是 5.5.1）：
 
-```shell
+```bash
 ➜ strings libQt5Core.so.5 |grep Qt |grep version
 This is the QtCore library version Qt 5.10.1 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 5.3.1 20160406 (Red Hat 5.3.1-6))
 Cannot mix incompatible Qt library (version 0x%x) with this library (version 0x%x)
@@ -70,7 +70,7 @@ Cannot mix incompatible Qt library (version 0x%x) with this library (version 0x%
 
 关于编译 Qt，在 BLFS 的 HandBook 中编译 Qt5 有说明：[Qt-5.4.2 ](http://anduin.linuxfromscratch.org/~bdubbs/blfs-book-xsl/x/qt5.html)，深以为然。简单来说，首先在 `/opt` 建立相应文件夹后，再建立一个指向这个文件夹的软链接 `qt5`。
 
-```
+```bash
 # 准备安装 QT 的目录
 sudo mkdir /opt/qt.5.5.1
 sudo ln -s /opt/qt.5.5.1 /opt/qt5
@@ -79,13 +79,13 @@ sudo ln -s /opt/qt.5.5.1 /opt/qt5
 
 碰到一大堆报错 `XCB` 啥的，查了下直接加 `-qt-xcb` 就行了，我也不知道 `XCB` 干嘛的，这不是重点。（`configure --help` 可以获得编译 Qt 详尽的选项说明）
 
-```
+```bash
 ./configure --prefix=/opt/qt5.5.1 -no-openssl -qt-xcb
 ```
 
 顺利同过。然后三部曲后两步：
 
-```
+```bash
 make -j4。
 sudo make install
 ```
@@ -93,7 +93,7 @@ sudo make install
 Qt5 很大，编译这一步可能会耗时比较久，我的 Intel Core i5-6300HQ @ 4x 3.2GHz 大概用了 20~30 min。
 后来我也试过通过简化组建来缩短编译时间：
 
-```shell
+```bash
 ../configure -v -prefix /opt/qt5 -shared -largefile -accessibility -no-qml-debug -force-pkg-config \
 -release -opensource -confirm-license -optimized-qmake \
 -system-zlib -no-mtdev -system-libpng -system-libjpeg -system-freetype -fontconfig -system-harfbuzz \
@@ -108,14 +108,14 @@ Qt5 很大，编译这一步可能会耗时比较久，我的 Intel Core i5-6300
 
 接下来是 `fcitx-qt5`。在编译它之前要让刚刚编译好的 Qt 发挥作用，即使用我们自己编译安装的 Qt 工具链，包括 Qt 编译器和库文件。简单方便的做法是临时 `export` 一下。
 
-```shell
+```bash
 export PATH=/opt/qt5/5.11.1/gcc_64/bin:$PATH
 export LD_LIBRARY_PATH=/opt/qt5/5.11.1/gcc_64/lib:$LD_LIBRARY_PATH
 ```
 
 然后就是下载和编译 fcitx-qt5 了：
 
-```shell
+```bash
 git clone https://github.com/fcitx/fcitx-qt5.git
 cd fcitx-qt5
 cmake .
@@ -123,7 +123,7 @@ cmake .
 
 我第一次编译的时候出现报错：
 
-```shell
+```bash
 CMake Error at CMakeLists.txt:8 (find_package):
   Could not find a package configuration file provided by "ECM" (requested
   version 1.4.0) with any of the following names:
@@ -142,7 +142,7 @@ See also "/path/to/fcitx-qt5/CMakeFiles/CMakeOutput.log".
 
 Google 一下，哦，`sudo apt install extra-cmake-modules` 就行了。继续：
 
-```shell
+```bash
 cmake .
 
 ........
@@ -163,7 +163,7 @@ See also "/path/to/fcitx-qt5/CMakeFiles/CMakeOutput.log".
 
 WTF???.... 不要急不要急，Google 一下，哦，`sudo apt install libxkbcommon-dev`。再继续：
 
-```shell
+```bash
 cmake .
 
 ........
@@ -193,7 +193,7 @@ See also "/path/to/fcitx-qt5/CMakeFiles/CMakeOutput.log".
 
 哦，知道了，Google。哦，`sudo apt install fcitx-libs-dev`。好，三继续：
 
-```shell
+```bash
 cmake .
 # 这次编译过了 ..............
 
