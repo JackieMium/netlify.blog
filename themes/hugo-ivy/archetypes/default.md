@@ -2,5 +2,6 @@
 title: ''
 date: ''
 author: Jackie
-disable_comments: false
+disable_comments: no
+show_toc: yes
 ---
