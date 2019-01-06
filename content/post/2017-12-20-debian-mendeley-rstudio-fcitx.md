@@ -10,6 +10,7 @@ tags:
   - 软件
   - 问题
 disable_comments: no
+show_toc: yes
 ---
 
 # 0. 写在前面
