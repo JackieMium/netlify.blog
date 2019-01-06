@@ -112,9 +112,9 @@ extern void foo(void);
 
 `foo.h` 定义了一个接口使用我们的函数，这也是我们想生成库的函数，这个库里将只有这一个简单的函数`foo()`。`foo.c` 则是这个函数的具体实现，`main.c` 是一个用到我们库的主程序。最终我么想要用 `main.c` 生成一个可执行文件，这个可执行文件引用我们从 `foo.c` 生成的动态共享库。
 
-### Step 1: 使用无约束位代码选项编译
+### Step 1: 使用 -fpic 选项编译
 
-我们需要把我们库的源文件编译成无约束位代码(Position Independent Code, PIC)。无约束位代码是存储在主内存中的机器码，执行的时候与绝对地址无关。有两个选项 -fpic 和 -fPIC。直接 RTFM 吧，虽然我也不大懂：
+我们需要把我们库的源文件编译成位置无关代码(Position Independent Code, PIC)。位置无关代码是存储在主内存中的机器码，执行的时候与绝对地址无关。有两个选项 -fpic 和 -fPIC。直接 RTFM 吧，虽然我也不大懂：
 
 >**-fpic**
 >
@@ -239,7 +239,7 @@ gcc 有一个默认的搜索列表，但我们的工作目录并不在这个列�
 
 **为什么还报错呢？**
 
-虽然我们的当前在 `LD_LIBRARY_PATH` 中，但是我们还没有导出 (export) 它。在 Linux 中，如果你不将修改 export 到一个环境变量，这些修改是不会被子进程继承的。加载器和我们的测试程序没有继承我们所做的修改。要修复这个问题很简单，`export` 一下就行了：
+虽然我们的当前路径在 `LD_LIBRARY_PATH` 中，但是我们还没有导出 (export) 它。在 Linux 中，如果你不将修改 export 的话这个环境变量对后面的命令是不起不作用的。所以我们 `export` 一下就行了：
 
 ```bash
 ➜ export LD_LIBRARY_PATH=.:$LD_LIBRARY_PATH
@@ -299,6 +299,7 @@ Hello, I'm a shared library
 |-Wp,\<options\>          |Pass comma-separated <options> on to the preprocessor.|
 |-Wl,\<options\>          |Pass comma-separated <options> on to the linker.|
 
+另外注意这里 -L. 选项也还在。
 
 `rpath` 方法有一个优点，对于每个程序编译时我们都可以通过这个选项单独罗列它自己的共享库位置，因此不同的程序可以在指定到不同路径去加载需要的库文件，而不需要一次次的去指定 `LD_LIBRARY_PATH` 环境变量。
 
@@ -365,7 +366,6 @@ ldd 就是用来查看动态库依赖的。另外，readelf 指定 -d 参数也�
 
 ```bash
 ➜ readelf ./test -d
-
 Dynamic section at offset 0x2de8 contains 27 entries:
   Tag        Type                         Name/Value
  0x0000000000000001 (NEEDED)             Shared library: [libfoo.so]
@@ -435,7 +435,6 @@ foo.c  foo.h  foo.o  main.c
 foo.c  foo.h  foo.o  libfoo.so.1.0.0  libfoo.so.1.0.1  main.c
 
 ➜ readelf -d libfoo.so.1.0.0 
-
 Dynamic section at offset 0x2e20 contains 24 entries:
   Tag        Type                         Name/Value
  0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
@@ -462,8 +461,8 @@ Dynamic section at offset 0x2e20 contains 24 entries:
  0x000000006ffffff0 (VERSYM)             0x3a4
  0x000000006ffffff9 (RELACOUNT)          3
  0x0000000000000000 (NULL)               0x0
-➜ readelf -d libfoo.so.1.0.1 
 
+➜ readelf -d libfoo.so.1.0.1
 Dynamic section at offset 0x2e10 contains 25 entries:
   Tag        Type                         Name/Value
  0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
@@ -499,7 +498,7 @@ lrwxrwxrwx 1 root root  15 Jan  6 20:36 libfoo.so.1 -> libfoo.so.1.0.1
 -rwxr-xr-x 1 adam adam 16K Jan  6 20:33 libfoo.so.1.0.1
 ```
 
-看一看到，如果我们在 gcc 编译的时候给 linker 传递一个 -soname 选项，在生成的动态库中 readelf 可以看到 soname 字段，而 ldconfig 就能根据这个字段自动生成 soname 这个文件链接。
+可以看到，如果我们在 gcc 编译的时候给 linker 传递一个 -soname 选项，在生成的动态库中 readelf 可以看到 soname 字段，而 ldconfig 就能根据这个字段自动生成 soname 这个文件链接。
 
 ### 所谓系统标准路径
 
@@ -512,7 +511,7 @@ ldconfig 会去读 /etc/ld.so.conf 这个文件：
 include /etc/ld.so.conf.d/*.conf
 ```
 
-可以看到这个文件直接指定了 /etc/ld.so.conf.d/ 下所有 *.conf 文件，我们接着看：
+这个文件直接指定了 /etc/ld.so.conf.d/ 下所有 *.conf 文件，我们接着看：
 
 ```bash
 ➜ ls /etc/ld.so.conf.d 
@@ -527,7 +526,7 @@ fakeroot-x86_64-linux-gnu.conf  libc.conf  x86_64-linux-gnu.conf  zz_i386-biarch
 /usr/lib/x86_64-linux-gnu
 ```
 
-看到了吧，这些文件就是一个个把库文件路径列出来了。ldconfig 读完了处理完了就会生成 /etc/ld.so.cache 这个缓存文件。
+这些文件就是一个个把库文件路径列出来了。ldconfig 读完了处理完了就会生成 /etc/ld.so.cache 这个缓存文件。
 
 但是关于 linker 的标准搜索路径，似乎大家看法不太一样，StackOverflow 上的问题 [How to print the ld(linker) search path](How to print the ld(linker) search path) 回答很多。我仅仅演示一下，具体讨论去看网页吧：
 
