@@ -17,19 +17,19 @@ disable_comments: false
 
 安装 pdftotext 和 pdfinfo:
 
-```
+```bash
 sudo apt-get install poppler-utils
 ```
 
 查看内核信息和机器架构:
 
-```
+```bash
 uname --kernel-name --machine
 ```
 
 在 Zotero 的数据目录里建立刚刚安装的两个包的命令链接，链接名要包含上面查到的内核和机器架构信息
 
-```
+```bash
 cd ~/.zotero
 ln -s $(which pdftotext) pdftotext-$(uname -s)-$(uname -m)
 ln -s $(which pdfinfo) pdfinfo-$(uname -s)-$(uname -m)
@@ -37,7 +37,7 @@ ln -s $(which pdfinfo) pdfinfo-$(uname -s)-$(uname -m)
 
 最后还需要一个小脚本来改变 `pdfinfo` 命令的参数:
 
-```
+```bash
 cd ~/.zotero
 wget -O pdfinfo.sh https://raw.githubusercontent.com/zotero/zotero/4.0/resource/redirect.sh
 chmod a+x pdfinfo.sh
@@ -45,7 +45,7 @@ chmod a+x pdfinfo.sh
 
 为刚刚安装的两个包新建 `*.version` 文件，文件名要包含版本信息:
 
-```
+```bash
 cd ~/.zotero
 pdftotext -v 2>&1 | head -1 | cut -d ' ' -f3 > pdftotext-$(uname -s)-$(uname -m).version
 pdfinfo -v 2>&1 | head -1 | cut -d ' ' -f3 > pdfinfo-$(uname -s)-$(uname -m).version
@@ -53,7 +53,7 @@ pdfinfo -v 2>&1 | head -1 | cut -d ' ' -f3 > pdfinfo-$(uname -s)-$(uname -m).ver
 
 在 Zotero 的设置 "Preferences" - "Search" 应该会看到类似于:
 
-```
+```bash
 PDF indexing
   pdftotext version 0.26.5 is installed
   pdfinfo version 0.26.5 is installed
@@ -67,7 +67,7 @@ PDF indexing
 
 如果上述完成还不可用，运行这个脚本：
 
-```shell
+```bash
 #!/bin/bash
 
 version=$(dpkg-query -W -f='${Version}' poppler-utils || echo "please_install_poppler-utils")
