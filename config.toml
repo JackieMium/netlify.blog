@@ -1,5 +1,5 @@
 baseurl = "https://jiangjun.netlify.com/"
-languageCode = "en-us"
+languageCode = "zh-CN"
 title = "Jackie"
 theme = "hugo-ivy"
 googleAnalytics = ""

@@ -62,7 +62,7 @@ blockquote {
   border-left: 3px solid #ddd;
 }
 
-/* Code */
+/* Code
 
 pre, code {
   font-size: .9em;
@@ -84,6 +84,8 @@ code {
 pre code {
   background: none;
 }
+
+*/
 
 /* Lists */
 
