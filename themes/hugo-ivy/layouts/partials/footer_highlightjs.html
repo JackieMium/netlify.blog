@@ -7,7 +7,6 @@
 {{ range .Params.highlightjsLang }}{{ $.Scratch.Add "highLangs" . }}{{ end }}
 {{ range ($.Scratch.Get "highLangs") }}
 <script src="{{ $highCDN }}/highlight.js/{{ $highVer }}/languages/{{ . }}.min.js"></script>{{ end }}
-<script src="//cdn.bootcss.com/highlight.js/9.12.0/languages/r.min.js"></script>
 <script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
 {{ end }}
 {{ end }}

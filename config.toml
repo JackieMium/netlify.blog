@@ -38,5 +38,5 @@ footnotereturnlinkcontents = "↩"
 
   highlightjsVersion = "9.12.0"
   highlightjsCDN = "//cdn.bootcss.com"
-  highlightjsLang = ["r", "python", "bash", "sql", "postgres"]
+  highlightjsLang = ["r", "yaml", "tex", "python"]
   highlightjsTheme = "github"
