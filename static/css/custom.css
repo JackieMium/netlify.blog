@@ -5,11 +5,15 @@ github.com style (c) Vasily Polovnyov <vast@whiteants.net>
 */
 
 pre, code {
-  font-size: .9em;
+  padding: 4px;
+  font-size: .95em;
+  background: #f8f8f8;
 }
 
 pre code {
-  line-height: 1.75;
+  padding: 4px;
+  line-height: 1.5;
+  background: #f8f8f8;
 }
 
 .hljs {
