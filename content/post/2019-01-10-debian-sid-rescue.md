@@ -26,11 +26,11 @@ show_toc: yes
 
 ## 1. liveCD & chroot
 
-手头没有现成的 liveCD，就去下了一个。因为之前深爱 Gentoo 的缘故，我习惯用 SystemRescueCd  这个 Gentoo-based 的专用的系统急救的 liveCD 环境 。直接官网下载最新 iso，刻盘用 Rufus，刻盘注意 UEFI/MBR 不要选错。
+手头没有现成的 liveCD，就去下了一个。因为之前深爱 Gentoo 的缘故，我习惯用 [SystemRescueCd](http://www.system-rescue-cd.org/) 这个 Gentoo-based 的专用的系统急救的 liveCD 环境 。直接官网下载最新 iso，刻盘用 [Rufus](https://rufus.ie/en_IE.html)，刻盘注意 UEFI/MBR 不要选错。
 
-刻完盘重启，进 U 盘，ResSysCD 菜单直接选进 X 环境，联网。
+刻完盘重启，进 U 盘，SysResCD 菜单直接选进 X 环境，联网。
 
-然后是要 chroot 进去我的 Debian 盘。我的电脑是 128G SSD + 1T HDD 双硬盘，SSD 有 EFI 分区加一个 Windows 的系统盘两个分区；HDD 前面一个 NTFS 分区，依次 HOME、 swap 和 / 分区。分别 cfdisk 两个盘看了一下硬盘和分区，sda 对应 SSD，sdb 对应 HDD，没什么。所以直接挂载：
+然后是要 chroot 进去我的 Debian 盘。我的电脑是 128G SSD + 1T HDD 双硬盘，SSD 有 EFI 分区加一个 Windows 的系统盘两个分区；HDD 开头一个 NTFS 分区，后面依次 HOME、 swap 和 / 分区。分别 cfdisk 两个盘看了一下硬盘和分区，sda 对应 SSD，sdb 对应 HDD，没什么了，记一下分区号后直接挂载：
 
 ```
 mount /dev/sdb4 /mnt
@@ -39,7 +39,7 @@ mount /dev/sdb2 /mnt/home
 
 中间一度不知道 EFI 要不要挂载到 /mnt/boot，尝试挂载了一看明显文件夹里内容不对，所以又 umount 了。umount 之后再看 /mnt/boot 内容，果然是系统 /boot 下应该有的内核和 grub 文件里，确认无误。
 
-装过 Arch/Gentoo 的肯定都知道，因为后面要 chroot，所以 dev/proc/sys 这些要记得挂载。这个我是不记得具体挂载命令的，我一样的选择去看 Gentoo 的文档 Gentoo Handbook。按照文档里来：
+装过 Arch/Gentoo 的肯定都知道，因为后面要 chroot，所以 dev/proc/sys 这些要记得挂载。这个我是不记得具体挂载命令的，我一样的选择去看 Gentoo 的文档 [Gentoo Handbook](https://wiki.gentoo.org/wiki/Handbook:AMD64/Installation/Base#Mounting_the_necessary_filesystems)。按照文档里来：
 
 ```bash
 mount --types proc /proc /mnt/proc
@@ -79,7 +79,11 @@ aptitude install systemd=239-15
 
 **注意**：因为这里降级势必牵涉到解决依赖的问题，所以我用了 aptitude。
 
-但是实际我发现中依旧发现有一些依赖无法满足，我直接 apt install systemd=239-15 看了一下，发现 systemd 和与之相关的几个包竟然下载大小为 0Kb，什么意思呢，本地有包在。所以就简单了，直接去 /var/cache/apt/archives 看了一下果然 systemd_239-15_amd64.deb 还在。然后 `dpkg -l |grep systemd` 再检查一下发现 systemd 相关的几个包 libnss-systemd, libpam-systemd, libsystemd0, systemd, systemd-coredump, systemd-sysv 都还在。所以简单了，直接 `dpkg -i` 把它们都装上就行了（这里其实应该还是用 apt install 装让它自己解决依赖，当时脑子抽了只想到 dpkg 了）。dpkg 后来还有报错，但是好歹包都装上了。当时把错误记录到一个文本文件了，这也是一个错误，因为 liveCD 环境的文件留不下来，应该实在挂载的 HOME 分区建文件的。
+但是实际我发现中依旧发现有一些依赖无法满足，我直接 `apt install systemd=239-15` 看了一下，发现 systemd 和与之相关的几个包竟然下载大小为 0Kb，什么意思呢，本地有包在。
+
+所以就简单了，直接去 `/var/cache/apt/archives` 看了一下果然 systemd_239-15_amd64.deb 还在。然后 `dpkg -l |grep systemd` 再检查一下发现 systemd 相关的几个包 libnss-systemd, libpam-systemd, libsystemd0, systemd, systemd-coredump, systemd-sysv 都还在。直接 `dpkg -i` 把它们都装上就行了（这里其实应该还是用 apt install 装让它自己解决依赖，当时脑子抽了只想到 dpkg 了）。dpkg 后来还有报错，但是好歹包都装上了。
+
+当时把错误记录到一个文本文件了，这也是一个错误，因为 liveCD 环境的文件留不下来，应该实在挂载的 HOME 分区建文件的。
 
 想了一下 systemd 既然已经降级了，就直接：
 
@@ -88,6 +92,6 @@ update-initramfs -u
 update-grub
 ```
 
-更新下内核和引导。然后就放心的重启了，重启后果然，系统已经没问题了。至此这次乌龙的爆炸顺利幸存！
+更新下内核和引导。然后就放心的重启了。重启后果然，系统已经没问题了。至此这次乌龙的爆炸顺利幸存！
 
 后来还不放心系统依赖，所以重启之后首先 `apt-mark hold systemd`。没有删掉 snapshot 源，再次 `apt update && apt upgrade` 确认系统依赖没有炸，OK。
