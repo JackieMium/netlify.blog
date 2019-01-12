@@ -87,6 +87,18 @@ pre code {
 
 */
 
+pre, code {
+  padding: 4px;
+  font-size: .95em;
+  background: #f8f8f8;
+}
+
+pre code {
+  padding: 4px;
+  line-height: 1.5;
+  background: #f8f8f8;
+}
+
 /* Lists */
 
 ul, ol {
