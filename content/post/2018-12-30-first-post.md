@@ -67,3 +67,20 @@ plot(gg)
 | col 1 is |  left-aligned | $1600 |
 | col 2 is |    centered   |   $12 |
 | col 3 is | right-aligned |    $1 |
+
+永远都没想到会有那么一天，我要在这里测试数学公式渲染...
+
+我们假设 `$Y = \beta_0 + \beta_1x$` 并且 `$E = mc^2$`.... 不行，说到我要睡觉，来个简单的正态分布：
+
+$$
+\begin{equation}
+P(A \mid B) = \frac{P(B \mid A) \, P(A)}{P(B)} 
+\end{equation}
+$$
+
+以及 Exponential function (What?):
+$$
+\begin{equation}
+e^x = \lim_{n \to \infty} \left( 1+ \frac{x}{n} \right)^n
+\end{equation}
+$$
