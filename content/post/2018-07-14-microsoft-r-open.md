@@ -132,7 +132,7 @@ lrwxrwxrwx 1 root root 18 Jun  5 03:22 /opt/kingsoft/wps-office/office6/libpng12
 吐槽再次完毕，我们下面来自己掌控怎么设置到底谁才是系统默认的 R 版本。
 
 - 我之前装的是 `R 3.5.1 (2018-07-02) -- "Feather Spray"`，`R` 可执行文件路径为 `/usr/lib/R/bin/R`
-- 而 MRO 刚刚看到了，装在 `/op/` 下，具体可执行文件路径 `/opt/microsoft/ropen/3.5.0/lib64/R/bin/R`
+- 而 MRO 刚刚看到了，装在 `/opt/` 下，具体可执行文件路径 `/opt/microsoft/ropen/3.5.0/lib64/R/bin/R`
 - 我们在终端直接 `R` 其实执行是我们 `PATH` 里存在 `R` 命令，而上述两个路径显然都不在 `PATH` 里
 - `whereis R` 看一下，发现其实执行的是 `/usr/bin/R` 这个命令，而这个命令本身是一个软链接：`/usr/bin/R -> /opt/microsoft/ropen/3.5.0/lib64/R/bin/R`
 
