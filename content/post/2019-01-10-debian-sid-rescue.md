@@ -83,7 +83,7 @@ aptitude install systemd=239-15
 
 所以就简单了，直接去 `/var/cache/apt/archives` 看了一下果然 systemd_239-15_amd64.deb 还在。然后 `dpkg -l |grep systemd` 再检查一下发现 systemd 相关的几个包 libnss-systemd, libpam-systemd, libsystemd0, systemd, systemd-coredump, systemd-sysv 都还在。直接 `dpkg -i` 把它们都装上就行了（这里其实应该还是用 apt install 装让它自己解决依赖，当时脑子抽了只想到 dpkg 了）。dpkg 后来还有报错，但是好歹包都装上了。
 
-当时把错误记录到一个文本文件了，这也是一个错误，因为 liveCD 环境的文件留不下来，应该实在挂载的 HOME 分区建文件的。
+当时把错误记录到一个文本文件了，这也是一个失误，因为 liveCD 环境的文件留不下来，应该在挂载的 HOME 分区建文件的，这样重启了文本文件也还在。
 
 想了一下 systemd 既然已经降级了，就直接：
 
