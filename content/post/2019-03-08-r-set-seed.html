@@ -1,0 +1,70 @@
+---
+title: R 里的随机数种子 set.seed()
+author: Jackie
+date: '2019-03-08'
+slug: r-set-seed
+categories:
+  - R
+tags:
+  - R
+  - 基础
+disable_comments: no
+show_toc: yes
+---
+
+
+
+<p>这一篇只写一点很简单的小东西，R 里用 <code>set.seed()</code> 设置随机数种子。</p>
+<p>以前呢，只知道 <code>set.seed(1234)</code> 是设置随机数种子保证数据分析再现性的，但是其实具体用法没有了解过。现在想起来以前还在一个脚本里多个需要随机的地方写了不同的 <code>set.seed()</code> 语句…</p>
+<p>好吧，废话不多数，主要参考的就是 R 本身的文档和 StackOverflow 的一个问题：<a href="https://stackoverflow.com/questions/25513204/r-set-seed-s-scope">R set.seed() ’s scope</a>。</p>
+<p>总结一下就是：</p>
+<ul>
+<li>R 里 <code>set.seed()</code> 是一个全局选项，在一个脚本里，更明确地说在一个 session 里设置随机数种子的话，整个 session 的随机状态就都设置好了</li>
+<li>之后不管我们在这个 session 里进行多少次随机过程以后都是可以复现的</li>
+<li>设置好了随机数种子并不代表每一次随机过程的结果一模一样。什么意思呢，比如说 <code>rnorm(10)</code> 可以随机抽取 10 个标准正态分布的数字，但是我在一个 session 里跑 100 次 <code>rnorm(10)</code> 的话，每次结果都会不一样；而我把设置这个随机数种子和跑 100 次 <code>rnorm(10)</code> 的脚本存下来的话，以后不管什么时候拿出来跑这 100 的每次的结果都会和之前那 100 次出来的一模一样。</li>
+</ul>
+<p>看一个例子，我在两个分开的 R Session 里运行相同的代码的结果：</p>
+<p><img src="/post/2019-03-08-r-set-seed_files/1.setseed.png" /></p>
+<p>可以看到两个 R Session 里的结果是一模一样的。为了更清楚的展示随机数种子工作的情况再做一个小试验：</p>
+<pre class="r"><code>set.seed(100)
+rnorm(1)
+## [1] -0.5022
+rnorm(1)
+## [1] 0.1315
+rnorm(1)
+## [1] -0.07892
+rnorm(1)
+## [1] 0.8868
+rnorm(1)
+## [1] 0.117
+set.seed(100)
+rnorm(1)
+## [1] -0.5022
+rnorm(1)
+## [1] 0.1315
+rnorm(1)
+## [1] -0.07892</code></pre>
+<p>看到了吗，这个随机数种子的重复从我们在函数里第一次使用就开始生效。而且如果重复设置相同的随机数种子的话，每设置一次又会回到初始状态开始抽样。所以我们在 3 次调用 <code>subfun()</code> 的时候会得到一模一样的数字重复，但是单独 <code>rnorm(1)</code> 的时候又会得到不同的数字。</p>
+<p>当然，如果我们只在某些步骤想要设置好随机数种子但是又不想影响其他随机过程的话，也可以用 <code>rm(.Random.seed, envir=.GlobalEnv)</code> 移除随机数种子。</p>
+<p><img src="/post/2019-03-08-r-set-seed_files/2.rmseed.png" /></p>
+<pre class="r"><code>set.seed(100)
+rnorm(1)
+## [1] -0.5022
+rnorm(1)
+## [1] 0.1315
+rnorm(1)
+## [1] -0.07892
+set.seed(100)
+rnorm(1)
+## [1] -0.5022
+rnorm(1)
+## [1] 0.1315
+rnorm(1)
+## [1] -0.07892
+rm(.Random.seed)
+rnorm(1)
+## [1] -1.226
+rnorm(1)
+## [1] 0.6306
+rnorm(1)
+## [1] -0.1178</code></pre>
