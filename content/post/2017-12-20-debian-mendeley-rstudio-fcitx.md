@@ -15,9 +15,9 @@ show_toc: yes
 
 # 0. 写在前面
 
-如果你看到这篇是也正在尝试解决 RStudio 和 Mendeley Desktop 里使用 fcitx 输入法输入中文的问题，请先看看我的 [Github 仓库](https://github.com/JackieMium/libfcitxplatforminputcontextplugin.so) 是否已经上传了你所需要的版本，或者另外一篇帖子[win10 下 Rstudio 切换中文输入法问题](https://d.cosx.org/d/419556-win10-rstudio)。如果还没有解决的话，欢迎提 Issue 我们一起看看，或者你已经解决了给我提 PR 当然更加欢迎 :D
+如果你找到这篇博客是也正在尝试解决 Linux(Debiain) 下 RStudio 和 Mendeley Desktop 里使用 fcitx 输入法输入中文的问题，请先看看我的 [Github 仓库](https://github.com/JackieMium/libfcitxplatforminputcontextplugin.so) 是否已经上传了你所需要的版本，或者另外一篇帖子 [win10 下 Rstudio 切换中文输入法问题](https://d.cosx.org/d/419556-win10-rstudio)。如果还没有解决的话，欢迎提 Issue 我们一起看看，或者你已经解决了给我提 PR 当然更加欢迎 :D
 
-如果你想了解解决这个问题的思路的话，可以继续看下文(我有点罗嗦，所以本文会有点长)。还有另外 3 篇在整个过程中对我帮助极大的博文和帖子作参考：
+如果你想了解解决这个问题的思路的话，可以继续看下文(我有点啰嗦，所以本文会有点长)。还有另外 3 篇在整个过程中对我帮助极大的博文和帖子作参考：
 
 - [A case study: how to compile a Fcitx platforminputcontext plugin for a proprietary software that uses Qt 5](https://www.csslayer.info/wordpress/fcitx-dev/a-case-study-how-to-compile-a-fcitx-platforminputcontext-plugin-for-a-proprietary-software-that-uses-qt-5/) 。这是 fcitx 开发者在 2017 写的一篇博文。
 - [Mendeley Fcitx Problem](http://yinflying.top/2017/09/727) 。最开始我就是看到了这篇博文和博主交流才知道以往自己认为安装一个 Qt5 很容易 “系统搞乱” 的观点是无稽之谈，然后才决定自定编译 Qt5 的。
@@ -27,7 +27,7 @@ show_toc: yes
 
 这篇博文经历了多次更新，原因很多。这次借着博客的迁移我打算修改完善一下，同时也整理一下前因后果免得看起来逻辑混乱。
 
-最开始我写出来是在 2017-12-20，当时我第一次通过编译 qt 和 fcitx-qt5 解决了 Mendeley Desktop 和 RStudio 中 fcitx 输入中文的问题。但是写成此文之后，Rstudio 再次更新我再次按照这个博文编译 fcitx-qt5 发现编译出来的库文件没用。本身其中原理我大概懂，所以不认为这个方法会失效，那既然我编译出来的库文件失效，只能说明是我的做法有问题，即我当初的记录有问题。这催生了 2018-02-05 这次更新（这也是第一次更新），当时我发现整个过程的核心问题是 Qt 环境的设置包括 `PATH` 和 `LD_LIBRARY_PATH` 这两个部分。只有这两个东西设置对编译出来的库文件才能起效。而具体的，编译 fcitx-qt5 用的 Qt5 是直接安装官方提供的二进制包然后用 Qt Creator 傻瓜操作，还是下载源码包自己编译 Qt5，抑或用软件包自己带的 Qt5 库这都是做法问题了。
+最开始我写出来是在 2017-12-20，当时我第一次通过编译 Qt 和 fcitx-qt5 解决了 Mendeley Desktop 和 RStudio 中 fcitx 输入中文的问题。但是写成此文之后，Rstudio 再次更新我按照这个博文里当时的记录编译 fcitx-qt5 发现编译出来的库文件没用。本身其中原理我大概懂，所以不认为这个方法会失效，那既然我编译出来的库文件失效，只能说明是我的做法有问题，也就说当初的记录有问题。这催生了 2018-02-05 这次更新（这也是第一次更新），当时我发现整个过程的核心问题是 Qt 环境的设置包括 `PATH` 和 `LD_LIBRARY_PATH` 这两个部分。只有这两个东西设置对编译出来的库文件才能起效。而具体的，编译 fcitx-qt5 用的 Qt5 是直接安装官方提供的二进制包然后用 Qt Creator 傻瓜操作，还是下载源码包自己编译 Qt5，抑或用软件包自己带的 Qt5 库这都是做法问题了。
 
 再次更新是 2018-08-16，在统计之都论坛看到帖子反映直接删掉 Rstudio 自带的 Qt5 库文件强迫它调用系统库文件可以解决这个问题。我试了确实可以，当然我悲观地认为这个方法肯定迟早会失效。果然，几个月后这个方法也失效，还是得回到自己编译的老路上去。
 
@@ -36,16 +36,16 @@ show_toc: yes
 
 最后的更新，也就是现在，2018-12 末，我在 Netlify 上托管新的博客，把 Github Issue 里的博文增删顺改迁移过来并决定把这篇博文好好改一下。
 
-相对于 Github Issue 那里的内容，这里增加了上面的废话，把 3 次更新信心放到了末尾（有改动）；以及最重要的，下面的正文部分仔细整理修改了。
+相对于 Github Issue 那里的内容，这里增加了上面的废话，把 3 次更新信息放到了末尾（有改动）；以及最重要的，下面的正文部分仔细整理修改了。
 
-现在整个正文的结构为：安装 Qt5，包括编译安装和直接安装官方二进制包；编译 fcitx-qt5，包括命令编译和使用 Qt Creator。
+现在整个正文的结构为：安装 Qt5，包括编译安装和直接安装官方二进制包；编译 fcitx-qt5，包括命令行编译和使用 Qt Creator；后记。
 
 
 # 2. 正文
 
 一直以来 Qt-based App 下 fcitx 无法输入中文的问题都让我很恼火，用的比较多的 RStudio 先后两次去 Support 发帖无果，在他们的 GitHub 也发了 [Issue](https://github.com/rstudio/rstudio/issues/1903)，他们标记了 bug 之后就啥也没干。Mendeley 也去发帖过一次，官方回复大概意思是 “知道了，但是目前这个问题优先级很低”.....
 
-其实以前用的是 Zotero 用来管理文献，也写过另一篇博文 [在 Debian 中使用 Zotero 文献管理软件](https://jiangjun.netlify.com/post/2017/05/debian-zotero/) ，后来软件某一次升级之后就打不开了..... 终端打开没有任何提示信息。可惜我整理得好好的文献库也没了。然后我就转到 Mendeley 了，Mendeley 比起来优点有：多终端同步，自带的 PDF 阅读器也支持高亮和注释，手机用 [Research App](https://www.researcher-app.com/) 连接到 Mendeley 后标记文章可以直接同步到 Mendeley。并且 Mendeley 支持倒入 Zotero 的文献库，所以最终我的 Zotero 虽然坏了但是文献库还是拯救出来了。
+其实以前用的是 Zotero 用来管理文献，也写过另一篇博文 [在 Debian 中使用 Zotero 文献管理软件](https://jiangjun.netlify.com/post/2017/05/debian-zotero/) ，后来软件某一次升级之后就打不开了..... 终端打开没有任何提示信息。可惜我整理得好好的文献库也没了。然后我就转到 Mendeley 了，Mendeley 比起来优点有：多终端同步，自带的 PDF 阅读器也支持高亮和注释，手机用 [Research App](https://www.researcher-app.com/) 连接到 Mendeley 后标记文章可以直接同步到 Mendeley。并且 Mendeley 支持导入 Zotero 的文献库，所以最终我的 Zotero 虽然坏了但是文献库还是拯救出来了。
 
 
 ~~~
@@ -107,7 +107,7 @@ Qt5 很大，编译这一步可能会耗时比较久，我的 Intel Core i5-6300
 
 ### 2.1.2 编译 fcitx-qt5
 
-接下来是 `fcitx-qt5`。在编译它之前要让刚刚编译好的 Qt 发挥作用，即使用我们自己编译安装的 Qt 工具链，包括 Qt 编译器和库文件。简单方便的做法是临时 `export` 一下。
+接下来是 `fcitx-qt5`。在编译它之前要让刚刚编译好的 Qt 发挥作用，就是要配置好去使用我们自己编译安装的 Qt 工具链，包括 Qt 编译器和库文件。简单方便的做法是临时 `export` 一下。
 
 ```bash
 export PATH=/opt/qt5/5.11.1/gcc_64/bin:$PATH
@@ -201,22 +201,22 @@ cmake .
 make -j4
 ```
 
-编译完成之后手别抖，不要惯性 `sudo make install`，不需要。现在 `platforminputcontext` 目录下应该已经有了新鲜出炉的 `libfcitxplatforminputcontextplugin.so` 了，然后就好了：
+编译完成之后手别抖，不要惯性 `sudo make install`，不需要。现在 `platforminputcontext/` 目录下应该已经有了新鲜出炉的 `libfcitxplatforminputcontextplugin.so` 了，然后就好了：
 
 ```
 sudo cp platforminputcontext/libfcitxplatforminputcontextplugin.so /opt/mendeleydesktop/plugins/qt/plugins/platforminputcontexts
 ```
 
-再**终端**打开 Mendeley 试试 fcitx 已经可以用了。不保险，直接鼠标点点点菜单找到 Mendeley Desktop 打开，输入法还没挂，OK。问题解决。
+再**终端**打开 Mendeley 试试 fcitx 已经可以用了。不保险，退出 Mendeley，直接鼠标点点点菜单找到 Mendeley Desktop 再次打开，输入法还没挂，OK。问题解决。
 
 
 ### 2.1.3 干嘛要编译 Qt5？直接二进制梭哈不好么？
 
-再来说说安装 Qt 的问题。qt.io 其实是提供 Qt-binary，在官网注册登录或者各大镜像站一般都可以下载到，文件名类似于 `qt-opensource-linux-x64-5.10.0.run` 的就是二进制包了。直接下载赋予执行权限并执行就可以开始安装 Qt，中间也可以选择安装哪些组件，这时候记得把 Qt 组建和 Qt Creator 选上就行。
+再来说说安装 Qt 的问题。qt.io 其实是提供 Qt-binary，在官网注册登录或者各大镜像站一般都可以下载到，文件名类似于 `qt-opensource-linux-x64-5.10.0.run` 的就是二进制包了。直接下载赋予执行权限并执行就可以开始安装 Qt，中间也可以选择安装哪些组件，这时候记得把 Qt 组件和 Qt Creator 选上就行。
 
 安装完了系统菜单里应该就会有 Qt Creator 了，如果没有的话，自己到安装路径里找到，然后启动 Qt Creator。
 
-这时候编译 fcitx-qt5 可以说就相当简单了。直接 Open Project，选择我们 git clone 到本地的 fcitx-qt5 目录下的 `CMakeLists.txt` 就可以导入 fcitx-qt5 项目了。导入后 Qt Creator 会自动 configure，只要我们的 Qt Creator 配置为我们刚刚的工具链的话这一步应该是不会出错的。下一步选择菜单 Build -> Build Project "fcitx-qt5"，然后 Qt Creator 会自动生成一个工程目录并开始编译项目，目录一般在 fcitx-qt5 同级目录下。编译完成后进入目录 `platforminputcontext` 下就能看到 `libfcitxplatforminputcontextplugin.so` 文件了。然后就和上面一样了，移动到对应路径就完了。
+这时候编译 fcitx-qt5 可以说就相当简单了。直接 Open Project，选择我们 git clone 到本地的 fcitx-qt5 目录下的 `CMakeLists.txt` 就可以导入 fcitx-qt5 项目了。导入后 Qt Creator 会自动 configure，只要我们的 Qt Creator 配置为我们刚刚的工具链的话这一步应该是不会出错的。下一步选择菜单 Build -> Build Project "fcitx-qt5"，然后 Qt Creator 会自动生成一个工程目录并开始编译项目，目录一般在 fcitx-qt5 同级目录下。编译完成后进入目录 `platforminputcontext/` 下就能看到 `libfcitxplatforminputcontextplugin.so` 文件了。然后就和上面一样了，移动到对应路径就完了。
 
 
 我自己最开始选择编译 Qt5 而不是用二进制包的原因很多。第一，我对 Qt 和  Qt Creator 都不熟，在我之前没有用过 Qt Creator 的时候我连它长什么样子都不知道，所以说让我安装 Qt Creator 然后用来编译 fcitx-qt5 我是连概念都没有的；第二，我自己想通过编译 Qt5 + 编译 fcitx-qt5 这个过程了解一下这个工具链的使用过程，这大概就纯属喜欢“折腾”吧，没办法。我总觉得自己做一遍肯定会比直接鼠标点点点多一点收获，当然花时间是少不了的。
@@ -294,7 +294,7 @@ N 久无果，中间 2~3 个小时过去了。
 
 我开始思索是不是我哪里做法有问题。
 
-这时我突然记起来之前尝试编译 RStudio 的时候，从 [RStudio 的 GitHub repo](https://github.com/rstudio/rstudio) 里的安装依赖的脚本里看到编译 RStudio 的时候会依照里面的设置从他们自己的 AWS 服务器上下载他们精（魔）简（改）的 QT binary 的。这洋一想我直接去用他们的 QT 编译岂不是更好。二话不说去 GitHub 看他们的 QT 放在哪儿。你看他们的 `rstudio/dependencies/linux/install-qt-sdk` 里写的：
+这时我突然记起来之前尝试编译 RStudio 的时候，从 [RStudio 的 GitHub repo](https://github.com/rstudio/rstudio) 里的安装依赖的脚本里看到编译 RStudio 的时候会依照里面的设置从他们自己的 AWS 服务器上下载他们精（魔）简（改）的 Qt binary 的。这洋一想我直接去用他们的 Qt 编译岂不是更好。二话不说去 GitHub 看他们的 Qt 放在哪儿。你看他们的 `rstudio/dependencies/linux/install-qt-sdk` 里写的：
 
 ```
 # presume 5.4.0
@@ -333,20 +333,22 @@ fi
 暴力暴力，够社会。
 
 直接自己拼接出 QtSDK-5.4.0 的地址下下来了。由于这个已经是 binary 了就不需要我再编译了，直接用就行。
-然后就是跟前面差不多了，十分顺利，没出错。解压他们的 QT 放到 `/opt/qt.5.4.0`，然后重新编译 `fictx-qt5`，得到 `libfcitxplatforminputcontextplugin.so`。
+然后就是跟前面差不多了，十分顺利，没出错。解压他们的 Qt 放到 `/opt/qt.5.4.0`，export 配置临时路径和工具链，然后重新编译 `fictx-qt5`，得到 `libfcitxplatforminputcontextplugin.so`。
 
-刚刚是 Mendeley 所以最后 `libfcitxplatforminputcontextplugin.so` 就拷贝到 `/opt/mendeleydesktop/plugins/qt/plugins/platforminputcontexts/`，即谁要给谁。同理，RStudio 就应该拷贝到 `/usr/lib/rstudio/bin/plugins/platforminputcontexts/` 了。
+刚刚是 Mendeley 所以最后 `libfcitxplatforminputcontextplugin.so` 就拷贝到 `/opt/mendeleydesktop/plugins/qt/plugins/platforminputcontexts/`。同理，RStudio 就应该拷贝到 `/usr/lib/rstudio/bin/plugins/platforminputcontexts/` 了。
 
 然后试了下 RStudio 终于，Fcitx 起来了。
 
 
 # 放在最后不代表不重要
 
-哦对了，我自己编译的 `libfcitxplatforminputcontextplugin.so` 我建了一个 [repo](https://github.com/JackieMium/libfcitxplatforminputcontextplugin.so)，也许谁要用的话可以试一试，在知乎上碰到以为用 Ubuntu 16.04 的知友用了我编译的文件解决了 ta 的输入法问题，我表示很开心。我会尽量保持 Mendeley 和 Rstudio 更新后 `libfcitxplatforminputcontextplugin.so` 不可用就更新，欢迎提 issue 催更或者 PR。
+哦对了，我自己编译的 `libfcitxplatforminputcontextplugin.so` 我建了一个 [repo](https://github.com/JackieMium/libfcitxplatforminputcontextplugin.so)，也许谁要用的话可以试一试，在知乎上碰到一位用 Ubuntu 16.04 的网友用了我编译的文件解决了 ta 的输入法问题，我表示很开心。我会尽量保持 Mendeley 和 Rstudio 更新后 `libfcitxplatforminputcontextplugin.so` 不可用就更新，欢迎提 issue 催更或者 PR。
 
 - 20180113 更新：有人告诉我其实 Fcitx 的一位开发者之前写过类似的东西 :[A case study: how to compile a Fcitx platforminputcontext plugin for a proprietary software that uses Qt 5](https://www.csslayer.info/wordpress/fcitx-dev/a-case-study-how-to-compile-a-fcitx-platforminputcontext-plugin-for-a-proprietary-software-that-uses-qt-5/)。好吧，怪我之前为啥没看到啊 ....
 
 --------
+
+以下是最初的更新记录，在整理后已经在本文的开头简要介绍了。这里仅作为记录用途继续保留。  
 
 - 20180205 更新：详细思考了下整个过程，中间看了一些资料，也再一次尝试编译 Qt，由于这时候 RStudio 已经更新过，Qt 也更新为 Qt-5.4.2。简单记录过程如下：
 
@@ -511,7 +513,7 @@ fi
 /usr/lib/x86_64-linux-gnu/libQt5Gui.so.5.9
 /usr/lib/x86_64-linux-gnu/libQt5Gui.so.5.9.2
 ```
-发现一个很有意思的事情：我们要得库文件系统 `/usr/lib/x86_64-linux-gnu/` 下有一份，Miniconda 有一份，我们编译出的 `/opt/qt.5.5.1/lib/` 有一份，还有哪里呢，`/usr/lib/rstudio/bin/` 和 `/opt/mendeleydesktop/lib/qt/`。这个就有意思了，就是说库其实好多份，好，系统有的和 Miniconda 的不说，版本不对，我们自己编译的不说。软件自己竟然带了一份，那就有个便利了，那就是说理论上我们编译这些库完全是多此一举，因为我们完全可以直接链接到软件自带的库啊，这样的话不用说库版本绝对没问题。
+发现一个很有意思的事情：我们要的库文件系统 `/usr/lib/x86_64-linux-gnu/` 下有一份，Miniconda 有一份，我们编译出的 `/opt/qt.5.5.1/lib/` 有一份，还有哪里呢，`/usr/lib/rstudio/bin/` 和 `/opt/mendeleydesktop/lib/qt/`。这个就有意思了，就是说库其实好多份，好，系统有的和 Miniconda 的不说，版本不对，我们自己编译的不说。软件自己竟然带了一份，那就有个便利了，那就是说理论上我们编译这些库完全是多此一举，因为我们完全可以直接链接到软件自带的库啊，这样的话不用说库版本绝对没问题。
 
 所以我们需要干嘛呢，`export LD_LIBRARY_PATH` 要么使用自己编译出来的 Qt 库，要么使用软件自己带的库。我试验了下，两种办法都可以。
 
@@ -519,7 +521,7 @@ fi
 
 -----
 
-2018-08-16 重要更新：目前发现一种**最最最最最最简单的办法 **。Debian 下进入 `/usr/lib/rstudio/bin` 目录，直接 ~ 删掉 ~ 所有 `libQt5` 开头的文件和 `qt.conf` 即可（测试时不要直接删掉，重命名备份就行了）。
+- 2018-08-16 重要更新：目前发现一种 **最最最最最最简单的办法**。Debian 下进入 `/usr/lib/rstudio/bin` 目录，直接 ~删掉~ 所有 `libQt5` 开头的文件和 `qt.conf` 即可（测试时不要直接删掉，重命名备份就行了）。
 我的做法是：
 
 ```bash
@@ -558,3 +560,7 @@ sudo mv qt.conf Qt
     ```
 
 最新的 `libfcitxplatforminputcontextplugin.so` 也已经同步更新到我的 [repo](https://github.com/JackieMium/libfcitxplatforminputcontextplugin.so/tree/master/lib-fcitx-plugin/debian.sid.20181208)，不会或者懒得编译的人自己去下载吧。
+
+----
+
+- 2019-03-18：修改错别字，修改部分语句，全文结构和内容未作改动。
