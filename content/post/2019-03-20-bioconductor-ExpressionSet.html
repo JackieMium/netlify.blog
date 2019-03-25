@@ -1,0 +1,246 @@
+---
+title: Bioconductor 中的 ExpressionSet 数据类型
+author: Jackie
+date: '2019-03-20'
+slug: bioconductor-ExpressionSet
+categories:
+  - Bioinformatics
+tags:
+  - Bioinformatics
+  - R
+  - 基础
+disable_comments: no
+show_toc: yes
+output:
+  blogdown::html_page:
+    toc: true
+---
+
+
+<div id="TOC">
+<ul>
+<li><a>1. 介绍</a></li>
+<li><a href="#-expressionset-">2. 从头构建一个 <em>ExpressionSet</em> 数据</a><ul>
+<li><a href="#assay-data">Assay data</a></li>
+<li><a href="#phenotypic-data">Phenotypic data</a></li>
+<li><a href="#annotations-and-feature-data">Annotations and feature data</a></li>
+<li><a href="#experiment-description">Experiment description</a></li>
+<li><a href="#assembling-an-expressionset">Assembling an <em>ExpressionSet</em></a></li>
+</ul></li>
+<li><a href="#expressionset-">3. <em>ExpressionSet</em> 的一些基本特性</a><ul>
+<li><a href="#-expressionset-">查看 <em>ExpressionSet</em> 的各个元素</a></li>
+<li><a>取子集</a></li>
+</ul></li>
+</ul>
+</div>
+
+<p>本文翻译自 <a href="https://www.bioconductor.org/packages/release/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf">An Introduction to Bioconductor’s <em>ExpressionSet</em> Class</a> ，有删改。</p>
+<p>接触生物信息学和 Bioconductor 的话，ExpressionSet 数据类型是一个很基础的概念。之前我也是一直下了<a href="https://www.bioconductor.org/packages/release/bioc/html/Biobase.html">文档</a>但是没仔细看。</p>
+<div class="section level1">
+<h1>1. 介绍</h1>
+<p><em>ExpressionSet</em> 是 Biobase 包提供的。Biobase 本身是 Bioconductor 项目的一个部分，为很多基因组学数据提供数据类型支持。<em>ExpressionSet</em> 就是用来专门将多种不同来源的数据整合到一起方便数据处理的一种数据类型，很多 Bioconductor 函数输入输出的都是 <em>ExpressionSet</em> 类型的数据。</p>
+<p>简单的说，<em>ExpressionSet</em> 把表达数据（<code>assayData</code> 存储芯片、测序等表达数据），表型信息（<code>phenoData</code> 存储样本信息），注释等元信息（<code>featureData</code>, <code>annotation</code> 存储芯片或者测序技术的元数据），以及操作流程（<code>protocolData</code> 存储样本处理相关的信息，通常由厂家提供）和实验（<code>experimentData</code> 用来描述实验相关信息）几种密切相关数据封装在一起，这样我们处理数据的时候不用关心各个数据的细节把它们当作一个整体来看就好。</p>
+<p>下面来看怎么一步一步的构建一个 <em>ExpressionSet</em> 数据。</p>
+</div>
+<div id="-expressionset-" class="section level1">
+<h1>2. 从头构建一个 <em>ExpressionSet</em> 数据</h1>
+<p>如果我们在 R 里用 affyPLM, affy, oligo 或者 limma 这些包读入了芯片的原始 CEL 数据的话，比如 affy 包的 <code>ReadAffy()</code>, <code>expresso()</code> 和 <code>justRMA()</code> 很可能读出来的数据已经就是 <em>ExpressionSet</em> 类型了。如果不是的话，我们可以用 convert 包的 <code>as</code> 来转换得到（<code>object</code> 是我们要转换的数据）：</p>
+<pre class="r"><code>library(&quot;convert&quot;)
+as(object, &quot;ExpressionSet&quot;)</code></pre>
+<p>我们重点来看怎么从头构建一个 <em>ExpressionSet</em> 数据。</p>
+<p>开头说过，芯片或者其他一些高通量基因组学技术通常产生几种相关的数据：<code>assayData</code>，<code>phenoData</code>，<code>featureData</code>，<code>protocolData</code> 和 <code>experimentData</code>。要构建 <em>ExpressionSet</em> 数据，我们就需要按照这几个类型数据一个个准备好数据，然后按照一定的规则组合在一起就行了。</p>
+<div id="assay-data" class="section level2">
+<h2>Assay data</h2>
+<p>首先是 <code>assayData</code>，这个数据通常就是我们最关新的存储表达数据的表格。这个数据通常是一个 <em>F</em> (features) 行 x <em>S</em> (samples) 列的表格数据。每一行代表一个 feature（可能是探针、基因、转录本等等），每一列代表一个样本。我们这里就用 Biobase 自带的数据做例子：</p>
+<pre class="r"><code>library(&quot;Biobase&quot;)
+dataDirectory &lt;- system.file(&quot;extdata&quot;, package = &quot;Biobase&quot;)
+exprsFile &lt;- file.path(dataDirectory, &quot;exprsData.txt&quot;)
+exprs &lt;- as.matrix(read.table(exprsFile, header = TRUE, sep = &quot;\t&quot;, 
+                              row.names = 1,as.is = TRUE))
+
+class(exprs)
+## [1] &quot;matrix&quot;
+dim(exprs)
+## [1] 500  26
+colnames(exprs)
+##  [1] &quot;A&quot; &quot;B&quot; &quot;C&quot; &quot;D&quot; &quot;E&quot; &quot;F&quot; &quot;G&quot; &quot;H&quot; &quot;I&quot; &quot;J&quot; &quot;K&quot; &quot;L&quot; &quot;M&quot; &quot;N&quot; &quot;O&quot; &quot;P&quot; &quot;Q&quot;
+## [18] &quot;R&quot; &quot;S&quot; &quot;T&quot; &quot;U&quot; &quot;V&quot; &quot;W&quot; &quot;X&quot; &quot;Y&quot; &quot;Z&quot;
+head(exprs[, 1:5])
+##                      A       B      C      D      E
+## AFFX-MurIL2_at  192.74  85.753 176.76 135.57 64.494
+## AFFX-MurIL10_at  97.14 126.196  77.92  93.37 24.399
+## AFFX-MurIL4_at   45.82   8.831  33.06  28.71  5.945
+## AFFX-MurFAS_at   22.54   3.601  14.69  12.34 36.866
+## AFFX-BioB-5_at   96.79  30.438  46.13  70.93 56.174
+## AFFX-BioB-M_at   89.07  25.846  57.20  69.98 49.582</code></pre>
+<p>现在我们就可以用 <code>exprs</code> 构建一个初始的 <code>ExpressionSet</code> 数据了：</p>
+<pre class="r"><code>minimalSet &lt;- ExpressionSet(assayData = exprs)</code></pre>
+<p>但是要利用 <code>ExpressionSet</code> 数据类型丰富的特征，我们还要为这个数据添加表型、样本等数据，我们下面继续。</p>
+</div>
+<div id="phenotypic-data" class="section level2">
+<h2>Phenotypic data</h2>
+<p>表型数据是描述样本相关信息的，比如受试者的性别、年龄，所在分组等等，这些通常也称为变量。表型数据通常是 <em>S</em> (samples) 行 x <em>V</em> (variables) 列的表格。每一行代表一个样本，比如一个受试者、一个组织样本或者一瓶细胞等等，列是一个关于样本的变量。还是拿 Biobase 自带的数据来看看：</p>
+<pre class="r"><code>pDataFile &lt;- file.path(dataDirectory, &quot;pData.txt&quot;)
+pData &lt;- read.table(pDataFile,
+                    row.names = 1,
+                    header = TRUE,
+                    sep = &quot;\t&quot;)
+dim(pData)
+## [1] 26  3
+rownames(pData)
+##  [1] &quot;A&quot; &quot;B&quot; &quot;C&quot; &quot;D&quot; &quot;E&quot; &quot;F&quot; &quot;G&quot; &quot;H&quot; &quot;I&quot; &quot;J&quot; &quot;K&quot; &quot;L&quot; &quot;M&quot; &quot;N&quot; &quot;O&quot; &quot;P&quot; &quot;Q&quot;
+## [18] &quot;R&quot; &quot;S&quot; &quot;T&quot; &quot;U&quot; &quot;V&quot; &quot;W&quot; &quot;X&quot; &quot;Y&quot; &quot;Z&quot;
+head(pData)
+##   gender    type score
+## A Female Control  0.75
+## B   Male    Case  0.40
+## C   Male Control  0.73
+## D   Male    Case  0.42
+## E Female    Case  0.93
+## F   Male Control  0.22
+summary(pData)
+##     gender              type               score      
+##  Length:26          Length:26          Min.   :0.100  
+##  Class :character   Class :character   1st Qu.:0.328  
+##  Mode  :character   Mode  :character   Median :0.415  
+##                                        Mean   :0.537  
+##                                        3rd Qu.:0.765  
+##                                        Max.   :0.980</code></pre>
+<p>示例数据有 26 行 3 列，这个 26 行刚好和前面的表达数据 <code>exprs</code> 的 26 列是一样的。如果我们看一下行列名的话，会发现行列名连顺序都一模一样：</p>
+<pre class="r"><code>all(rownames(pData) == colnames(exprs))
+## [1] TRUE</code></pre>
+<p><code>assayData</code> 和 <code>pData</code> 之间的这种对应关系其实是必须的，如果行列数或者行列名不对应的话，<code>ExpressionSet</code> 会报错。</p>
+<p><code>pData</code> 的每一列都是一个变量，不同的变量可能有不同的数据类型。比如年龄是数值，性别是字符，肿瘤的分期可能是因子等等。读入数据的时候要注意这些列数据类型是否正确，<code>read.table()</code> 的 <code>colClasses</code> 参数可以用来在读入数据的时候设置每一列的数据类型。</p>
+<p>有的时候我们可能觉得 <code>pData</code> 里单独的列名不够明确，比如这里的 <code>type</code> 和 <code>score</code> 都不知道具体指的什么。这时候我们还可以通过一个数据框提供额外的元数据：</p>
+<pre class="r"><code>metadata &lt;- data.frame(
+  labelDescription =
+    c(&quot;Patient gender&quot;,
+      &quot;Case/control status&quot;,
+      &quot;Tumor progress on XYZ scale&quot;),
+  row.names = c(&quot;gender&quot;, &quot;type&quot;, &quot;score&quot;))</code></pre>
+<p>我们这里提供的元数据只有一列 <code>labelDescription</code>，这也是<strong>必须</strong>要有的一列，想要其他列还可以自己按需添加。</p>
+<p>Biobase 提供了一个 <em>AnnotatedDataFrame</em> 数据类型把 <code>pData</code> 和 <code>metadata</code> 封装起来：</p>
+<pre class="r"><code>phenoData &lt;- new(&quot;AnnotatedDataFrame&quot;, data = pData, varMetadata = metadata)
+phenoData
+## An object of class &#39;AnnotatedDataFrame&#39;
+##   rowNames: A B ... Z (26 total)
+##   varLabels: gender type score
+##   varMetadata: labelDescription</code></pre>
+<p>对于一个 <em>AnnotatedDataFrame</em> 类型数据，有一些很实用的函数用来查看该数据中存储的不同的数据：<code>sampleNames()</code>，<code>pData()</code> 和 <code>varMetadata()</code> 等等。另外，<em>AnnotatedDataFrame</em> 能像一个普通的数据框那样取子集：</p>
+<pre class="r"><code>head(pData(phenoData))
+##   gender    type score
+## A Female Control  0.75
+## B   Male    Case  0.40
+## C   Male Control  0.73
+## D   Male    Case  0.42
+## E Female    Case  0.93
+## F   Male Control  0.22
+phenoData[c(&quot;A&quot;,&quot;Z&quot;),&quot;gender&quot;]
+## An object of class &#39;AnnotatedDataFrame&#39;
+##   rowNames: A Z
+##   varLabels: gender
+##   varMetadata: labelDescription
+pData(phenoData[phenoData$score&gt;0.8,])
+##   gender    type score
+## E Female    Case  0.93
+## G   Male    Case  0.96
+## X   Male Control  0.98
+## Y Female    Case  0.94</code></pre>
+</div>
+<div id="annotations-and-feature-data" class="section level2">
+<h2>Annotations and feature data</h2>
+<p>feature 的元数据，通常我们叫注释数据，和样本的元数据一样重要，因为我们最终得到各种结果都要通过注释落到具体的基因上去，不然得到的结果是一堆探针这是没用的。通常来说很多不同的实验组会用一种芯片，这个很好理解，因为芯片型号就那么多大家都用，重复平台是很常见的。所以呢，每个数据都把芯片的注释文件打包一份进去效率就太低了。所以，通常芯片的注释文件都是单独的 Bioconductor 包。这些注释文件描述了探针与基因、基因的功能等等之间的对应关系，有时候还有有 GO 和 KEGG 等其他来源的信息。<code>annotate</code> 和 <code>AnnotationDbi</code> 包就是用来处理这些注释元数据包的。</p>
+<p>由于注释信息由专门的包来提供，所以我们只需要提供平台信息作为注释信息就够了。我们这个数据是 Affymetrix hgu95av2 芯片的：</p>
+<pre class="r"><code>annotation &lt;- &quot;hgu95av2&quot;</code></pre>
+</div>
+<div id="experiment-description" class="section level2">
+<h2>Experiment description</h2>
+<p>通常关于实验，我们可以提供研究者和实验室信息、联系方式、研究题目等等相关的信息。<em>MIAME</em>(Minimum Information About a Microarray Experiment) 对象可以用来这种信息，我们通过 <code>new()</code> 来创建一个 <em>MIAME</em> 对象：</p>
+<pre class="r"><code>experimentData &lt;- new(
+  &quot;MIAME&quot;,
+  name = &quot;Pierre Fermat&quot;,
+  lab = &quot;Francis Galton Lab&quot;,
+  contact = &quot;pfermat@lab.not.exist&quot;,
+  title = &quot;Smoking-Cancer Experiment&quot;,
+  abstract = &quot;An example ExpressionSet&quot;,
+  url = &quot;www.lab.not.exist&quot;,
+  other = list(notes = &quot;Created from text files&quot;)
+)</code></pre>
+<p><code>new()</code> 函数通常接受一个类型参数，然后后面是多个成对的类名及其对应的内容存储在各自的类别里。关于 <em>MIAME</em> 数据的更多介绍请参考文档。</p>
+</div>
+<div id="assembling-an-expressionset" class="section level2">
+<h2>Assembling an <em>ExpressionSet</em></h2>
+<p>现在 <em>ExpressionSet</em> 所需要的各个部分都准备好了，我们就可以用 <code>ExpressionSet()</code> 创建一个 <em>ExpressionSet</em> 对象：</p>
+<pre class="r"><code>exampleSet &lt;- ExpressionSet(
+  assayData = exprs,
+  phenoData = phenoData,
+  experimentData = experimentData,
+  annotation = annotation
+)</code></pre>
+<p><em>exampleSet</em> 和 前面的 <em>minimalSet</em> 都是 <em>ExpressionSet</em> 对象，但是前者包含了远比后者更丰富的信息。</p>
+</div>
+</div>
+<div id="expressionset-" class="section level1">
+<h1>3. <em>ExpressionSet</em> 的一些基本特性</h1>
+<p>从头构建了一个 <em>ExpressionSet</em> 数据后，我们现在来看看这个数据的一些特征。<code>help(&quot;ExpressionSet-class&quot;)</code> 有一个简单地介绍随时可以查看。</p>
+<p>如果我们单纯打印一下 <em>ExpressionSet</em> 数据的话，内容可能很长，所以默认行为只会打印出简单地概要信息：</p>
+<pre class="r"><code>exampleSet
+## ExpressionSet (storageMode: lockedEnvironment)
+## assayData: 500 features, 26 samples 
+##   element names: exprs 
+## protocolData: none
+## phenoData
+##   sampleNames: A B ... Z (26 total)
+##   varLabels: gender type score
+##   varMetadata: labelDescription
+## featureData: none
+## experimentData: use &#39;experimentData(object)&#39;
+## Annotation: hgu95av2</code></pre>
+<div id="-expressionset-" class="section level2">
+<h2>查看 <em>ExpressionSet</em> 的各个元素</h2>
+<p>首先，直接用 <code>$</code> 就能查看 <em>ExpressionSet</em> 里的 <code>phenoData</code>（<em>AnnotatedDataFrame</em> 对象）：</p>
+<pre class="r"><code>exampleSet$gender[1:5]
+## [1] &quot;Female&quot; &quot;Male&quot;   &quot;Male&quot;   &quot;Male&quot;   &quot;Female&quot;
+exampleSet$gender[1:5] == &quot;Female&quot;
+## [1]  TRUE FALSE FALSE FALSE  TRUE</code></pre>
+<p><code>featureNames()</code>，<code>sampleNames()</code> 和 <code>varLabels</code> 一看名字就知道是干嘛的：</p>
+<pre class="r"><code>featureNames(exampleSet)[1:5]
+## [1] &quot;AFFX-MurIL2_at&quot;  &quot;AFFX-MurIL10_at&quot; &quot;AFFX-MurIL4_at&quot;  &quot;AFFX-MurFAS_at&quot; 
+## [5] &quot;AFFX-BioB-5_at&quot;
+sampleNames(exampleSet)[1:5]
+## [1] &quot;A&quot; &quot;B&quot; &quot;C&quot; &quot;D&quot; &quot;E&quot;
+varLabels(exampleSet)
+## [1] &quot;gender&quot; &quot;type&quot;   &quot;score&quot;</code></pre>
+<p>最后，<code>exprs()</code> 可以把表达矩阵取出来：</p>
+<pre class="r"><code>mat &lt;- exprs(exampleSet)
+dim(mat)
+## [1] 500  26</code></pre>
+</div>
+<div class="section level2">
+<h2>取子集</h2>
+<p>对 <em>ExpressionSet</em> 数据取子集可能是最常见的操作了。取子基的操作和针对一个表达矩阵取子集类似，行参数针对 feature 而列参数针对 sample。比如我们对上面的数据取子集得到一个新的只有 5 个探针和 3 个样本的新的 <em>ExpressionSet</em> 数据：</p>
+<pre class="r"><code>vv &lt;- exampleSet[1:5, 1:3]
+dim(vv)
+## Features  Samples 
+##        5        3
+featureNames(vv)
+## [1] &quot;AFFX-MurIL2_at&quot;  &quot;AFFX-MurIL10_at&quot; &quot;AFFX-MurIL4_at&quot;  &quot;AFFX-MurFAS_at&quot; 
+## [5] &quot;AFFX-BioB-5_at&quot;
+sampleNames(vv)
+## [1] &quot;A&quot; &quot;B&quot; &quot;C&quot;</code></pre>
+<p>比如我们只要来自样本为男性的数据：</p>
+<pre class="r"><code>males &lt;- exampleSet[ , exampleSet$gender == &quot;Male&quot;]
+males
+## ExpressionSet (storageMode: lockedEnvironment)
+## assayData: 500 features, 15 samples 
+##   element names: exprs 
+## protocolData: none
+## phenoData
+##   sampleNames: B C ... X (15 total)
+##   varLabels: gender type score
+##   varMetadata: labelDescription
+## featureData: none
+## experimentData: use &#39;experimentData(object)&#39;
+## Annotation: hgu95av2</code></pre>
+</div>
+</div>
