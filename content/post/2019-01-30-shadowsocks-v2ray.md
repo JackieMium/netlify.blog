@@ -126,7 +126,7 @@ Shadowsocks 和 v2ray 的配置其实都非常简单，无非就是服务器地�
 
 我们只需要改一下 `port2` 为想要设置的端口就行了。但是 v2ray 还有 `id` 这个 UUID 和 alterId 都需要记下来，这个填到客户端起到密码的作用。这里需要注意 Shadowsocks 和  v2ray 不要设置成一个端口了，不然会因为端口占用的问题不能同时跑起来。
 
-服务器段 Shadowsocks 和 v2ray 理论上来讲应该可以跑起来了，我们直接先直接 `ss-server -c /etc/shadowsocks-libev/config.json` 和 `/usr/bin/v2ray/v2ray --config /etc/v2ray/config.json` 看看服务器端是不是能跑起来了。如果能跑起来，我们直接来配置客户端了，有问题的话按照报错来处理。
+服务器端 Shadowsocks 和 v2ray 理论上来讲应该可以跑起来了，我们直接先直接 `ss-server -c /etc/shadowsocks-libev/config.json` 和 `/usr/bin/v2ray/v2ray --config /etc/v2ray/config.json` 看看服务器端是不是能跑起来了。如果能跑起来，我们直接来配置客户端了，有问题的话按照报错来处理。
 
 ## 3.2 客户端
 
