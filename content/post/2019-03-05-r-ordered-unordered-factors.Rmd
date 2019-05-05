@@ -191,4 +191,4 @@ McFadden's Pseudo  $R^2$ 通常不会很大，0.2 ～ 0.4 之间已经表示模�
 
 这篇就写这么多吧。其实这一篇主要是将目前的一点疑惑写下来以待解决。暂时的方法还是在做因子型数据的时候，先选择以无序纳入分析，或者改变比较矩阵参数。
 
-本篇代码脚本：[ordered.unordered.factors.R](code/2019-03-05-r-ordered-unordered-factors_files/ordered.unordered.factors.R)。
+本篇代码脚本：[ordered.unordered.factors.R](https://jiangjun.netlify.com/code/2019-03-05-r-ordered-unordered-factors_files/ordered.unordered.factors.R)。
