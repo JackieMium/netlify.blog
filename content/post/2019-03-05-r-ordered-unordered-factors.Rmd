@@ -1,0 +1,194 @@
+---
+title: R 中因子型变量的有序与无序
+author: Jackie
+date: '2019-03-05'
+slug: r-ordered-unordered-factors
+categories:
+  - R
+tags:
+  - R
+  - 基础
+  - 问题
+  - stats
+disable_comments: no
+show_toc: yes
+output:
+  blogdown::html_page:
+    toc: true
+---
+
+```{r setup,echo=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = TRUE)
+```
+
+今天涉及到的这个就很有意思了。很早开始我就对这个问题有点疑惑，但是一直没有抽出时间（好吧，其实主要还是我太懒）好好了解一下。前阵碰到数据做回归就觉得到了不得不查一下这个问题的时候了才稍微查了一下。
+
+事先声明，其实这个问题我到现在都懂的不是很多，里面涉及一些统计方面的东西没有找到很好的资料，所以这篇博文主要注重实用，也可能还会有错误，我写出来权当是自己做一下记录，请自行决定参考。
+
+本文部分参考：[UC Business Analytics R Programming Guide: Logistic Regression](http://uc-r.github.io/logistic_regression)
+
+# 有序和无序因子变量
+
+事实上以前，我对这个问题没什么疑问(大概是无知者无畏吧😂)。首先分类变量（categorical variables）一般我们都会用字符型（character）来存储，比如简单的 male/female、single/married/widowed 等，这个太直观了根本不需要解释和思考。就算有时候我们会把它们用数字表示，比如性别是 0/1、婚否是 0/1 这样的二分类变量我们甚至可以一样存储为 character 嘛。
+
+但是，有时候有的分类变量看起来 “好像是有序” 的我就会有点犯嘀咕了。比如肿瘤的分期 Ⅰ/Ⅱ/Ⅲ/Ⅳ  、尿蛋白 +/++/+++ 这样的变量。这些变量好像本身是有顺序的，而且不遵循这个本身自由顺序好像也不大合适。我以前就是这么以为的。
+
+直到有次我真的在做回归的时候理所当然的把一些变量设置成 ordered factor 的时候，发现结果会出现一些怪怪的我不知道是什么东西，才意识到这个东西并非这么简单。
+
+下面用例子具体来说明情况。
+
+# 例子
+
+生成 Logistic 回归模拟数据：
+
+- [How to simulate artificial data for logistic regression?](https://stats.stackexchange.com/questions/46523/how-to-simulate-artificial-data-for-logistic-regression)
+- [Simulating data for logistic regression with a categorical variable](https://stats.stackexchange.com/questions/49916/simulating-data-for-logistic-regression-with-a-categorical-variable)
+
+首先我们生成一个模拟数据，我们 x1～x4 四个变量的 100 x 4 的数据作为因变量。其中 x1、x2 都是标准正态分布，x3、x4 则是分类变量且二者完全相同的字母 A～E 只是 x3 是有序因子而 x4 是无序因子：
+
+```{r x}
+library("dummies")
+set.seed(1234)
+
+n = 1000
+x1 <- rnorm(n = n, mean = 0, sd = 1)
+x2 <- rnorm(n = n, mean = 0, sd = 1)
+x3 <- factor(round(runif(n = n, min = 1, max = 5)),
+             ordered = TRUE, labels = LETTERS[1:5])
+x4 <- factor(x3, ordered = FALSE, labels = letters[1:5])
+table(x3)
+table(x4)
+```
+
+然后我们根据 Logit 变换来构造 y。这样能保证 y ～ x 之间符合 Logistic 回归模型并且回归系数是我们已知的：
+
+```{r y}
+beta0 <- 1
+betaB <- -2
+betaC <- 3
+betaD <- -4
+betaE <- 5
+
+linpred <- cbind(x1, x2, 1, dummy(x4)[, -1]) %*%
+  c(2, -3, beta0, betaB, betaC, betaD, betaE)
+pi <- exp(linpred) / (1 + exp(linpred))
+y <- rbinom(n = n, size = 1, prob = pi)
+table(y)
+```
+
+好了，x/y 都有了，我们构造一个数据把他们都装起来：
+
+```{r dat, collapse=TRUE}
+dat <- data.frame(y, x1, x2, x3, x4)
+head(dat)
+str(dat)
+```
+
+注意最后 str() 已经很明确的显示 x3/x4 是否为 ordered factor。
+
+现在我们就分别建立两个 Logistic 回归方程，y ～ x1 + x2 + x3 和 y ～ x1 + x2 + x4。这两个回归方程的唯一不同应该就在于其中一个变量是否设置为 ordered factor。
+
+```{r fit, collapse = TRUE}
+fit.ord <- glm(y ~ x1 + x2 + x3, 
+               family = binomial(link = "logit"), 
+               data = dat)
+fit.unord <- glm(y ~ x1 + x2 + x4, 
+                 family = binomial(link = "logit"), 
+                 data = dat)
+summary(fit.ord)
+summary(fit.unord)
+```
+
+# 解读
+
+首先我们看到两个模型的 x1/x2 都是显著的且 p 值完全相同，模型 AIC、残差完全相同。但是很奇怪的就是在 `fit.ord` 里面关于 x3 的结果有 x3.L/x3.Q/x3.C/x3^4 这么几个奇奇怪怪的变量，而 `fit.unord` 就比较让人好理解只有 x4b ~ x4e，表示它们将 x4 = `a` 作为基准的结果。
+
+查询了一下我知道 L/Q/C 分别代表 Linear/Quadratic/Cubic，即线性（1 次方）、平方和立方，所以最后一个才会写 x3^4 即 4 次方。这个是多项式（Polynormial）模型，即把 x3 从 1～4 次方（x3 一共是 5 个水平）都纳入模型。至于是一起纳入模型还是逐个，我还没搞清楚。
+
+出现模型会纳入多项式，是 R 在回归分析中包括有序因子变量时的一种设置：
+
+```{r contrast, collapse = TRUE}
+getOption("contrasts")
+contrasts(dat$x3) # ord
+contrasts(dat$x4)  # un-ord
+```
+
+我们可以自己更改这个默认的参数：
+
+```{r fit2, collapse = TRUE}
+# set contrast for ord.factor to contr.treatment
+options(contrasts = c("contr.treatment", "contr.treatment"))
+getOption("contrasts")
+fit.ord2 <- glm(y ~ x1 + x2 + x3, family = binomial(link = "logit"), data = dat)
+fit.unord2 <- glm(y ~ x1 + x2 + x4, family = binomial(link = "logit"), data = dat)
+summary(fit.ord2)
+summary(fit.unord2) 
+```
+
+可以看到，现在两个模型都使用 `contr.treatment` 作为比较矩阵，这样就都把 x3/x4 = `a` 作为基准来计算，所以最后的结果就一模一样了。
+
+这里大概还要再多补统计方面的课。以上也参考了一些资料：
+
+一系列 stack 上搜到的问题：
+
+- [Factor or ordered factor?](https://stats.stackexchange.com/questions/175305/factor-or-ordered-factor)
+- [Interpretation of .L & .Q output from a negative binomial GLM with categorical data](https://stats.stackexchange.com/questions/233455/interpretation-of-l-q-output-from-a-negative-binomial-glm-with-categorical-d)
+- [Logistic regression and ordinal independent variables](https://stats.stackexchange.com/questions/101511/logistic-regression-and-ordinal-independent-variables/101556#comment197321_101513)
+- [Logit with ordinal independent variables](https://stats.stackexchange.com/questions/5387/logit-with-ordinal-independent-variables)
+- [How to handle ordinal categorical variable as independent variable](https://stats.stackexchange.com/questions/195246/how-to-handle-ordinal-categorical-variable-as-independent-variable)
+- [Is there an advantage to ordering a categorical variable?](https://stackoverflow.com/questions/21585056/is-there-an-advantage-to-ordering-a-categorical-variable)
+- [Factors ordered vs. levels](https://stackoverflow.com/questions/23396591/factors-ordered-vs-levels)
+
+R 邮件列表和文档：
+
+- [r-help maillist: Models with ordered and unordered factors](http://r.789695.n4.nabble.com/Models-with-ordered-and-unordered-factors-td4072225.html)
+- [R-Manual: Get and Set Contrast Matrices](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/contrasts.html)
+
+另外在网上看到的两篇很好的博文：
+
+- [LOGISTIC REGRESSION AND CATEGORICAL COVARIATES](https://freakonometrics.hypotheses.org/9023)
+- [REGRESSION ON VARIABLES, OR ON CATEGORIES?](https://freakonometrics.hypotheses.org/9109)
+
+# 模型评价和比较
+
+下面再来看模型比较。
+
+有时候我们纳入非常多的变量，然后做一个回归发现很多变量都并不显著，这时候就会涉及到变量筛选。常见的做法是根据 AIC/BIC 做 stepwise 筛选。这里就不介绍各种方法及其优劣了，这个是另一个话题。
+
+普通的线性模型里，一般直接用 F 检验看模型是否显著、$R^2$/Adj $R^2$ 来看模型效果，在 Logistic 模型里，有一些类似的东西。这属于模型的 goodness of fit，即模型本身的拟合程度。一般是在模型之间、模型与无效模型的比较上来说。
+
+
+我们直接看如果现在我又做一个简化模型，以及还有无效模型一起，如何比较模型是不是真的比之前要好。
+
+```{r fit.reduced, collapse = TRUE}
+fit.ord.reduced <- glm(y ~ x1 + x2, family = binomial(), data = dat)
+fit.null <- glm(y ~ 1, family = binomial(), data = dat)
+summary(fit.ord.reduced)
+summary(fit.null)
+with(fit.ord.reduced, 
+     pchisq(null.deviance - deviance, 
+            df.null - df.residual, lower.tail = FALSE))
+with(fit.ord, 
+     pchisq(null.deviance - deviance, 
+            df.null - df.residual, lower.tail = FALSE))
+vcdExtra::LRstats(vcdExtra::glmlist(fit.ord2, fit.ord.reduced, fit.null))
+anova(fit.ord, fit.ord.reduced, test = 'Chisq')
+```
+
+类比普通线性模型的 F 检验，卡方检验显示 `fit.ord` 和 `fit.ord.reduced` 这两个模型之间有显著差别。由于简化模型 AIC 变大了，所以结论就是其实简化模型相比原来的模型更差了。（其实还可以看到，AIC 和 BIC 一个是变大一个是变小的）
+
+还有另外一个类似于 $R^2$ 的统计量也可以用来衡量模型的 goodness of fit：
+
+```{r McFadden, collapse = TRUE}
+c(model.ord = pscl::pR2(fit.ord)["McFadden"],   # Pseudo R^2,  higher is better
+  model.unord = pscl::pR2(fit.unord)["McFadden"],
+  model.ord.reduced = pscl::pR2(fit.ord.reduced)["McFadden"])
+```
+
+McFadden's Pseudo  $R^2$ 通常不会很大，0.2 ～ 0.4 之间已经表示模型具有很好的拟合度了。
+
+# 结语
+
+这篇就写这么多吧。其实这一篇主要是将目前的一点疑惑写下来以待解决。暂时的方法还是在做因子型数据的时候，先选择以无序纳入分析，或者改变比较矩阵参数。
+
+本篇代码脚本：[ordered.unordered.factors.R](code/2019-03-05-r-ordered-unordered-factors_files/ordered.unordered.factors.R)。

@@ -1,0 +1,370 @@
+---
+title: R 中因子型变量的有序与无序
+author: Jackie
+date: '2019-03-05'
+slug: r-ordered-unordered-factors
+categories:
+  - R
+tags:
+  - R
+  - 基础
+  - 问题
+  - stats
+disable_comments: no
+show_toc: yes
+output:
+  blogdown::html_page:
+    toc: true
+---
+
+
+<div id="TOC">
+<ul>
+<li><a>有序和无序因子变量</a></li>
+<li><a>例子</a></li>
+<li><a>解读</a></li>
+<li><a>模型评价和比较</a></li>
+<li><a>结语</a></li>
+</ul>
+</div>
+
+<p>今天涉及到的这个就很有意思了。很早开始我就对这个问题有点疑惑，但是一直没有抽出时间（好吧，其实主要还是我太懒）好好了解一下。前阵碰到数据做回归就觉得到了不得不查一下这个问题的时候了才稍微查了一下。</p>
+<p>事先声明，其实这个问题我到现在都懂的不是很多，里面涉及一些统计方面的东西没有找到很好的资料，所以这篇博文主要注重实用，也可能还会有错误，我写出来权当是自己做一下记录，请自行决定参考。</p>
+<p>本文部分参考：<a href="http://uc-r.github.io/logistic_regression">UC Business Analytics R Programming Guide: Logistic Regression</a></p>
+<div class="section level1">
+<h1>有序和无序因子变量</h1>
+<p>事实上以前，我对这个问题没什么疑问(大概是无知者无畏吧😂)。首先分类变量（categorical variables）一般我们都会用字符型（character）来存储，比如简单的 male/female、single/married/widowed 等，这个太直观了根本不需要解释和思考。就算有时候我们会把它们用数字表示，比如性别是 0/1、婚否是 0/1 这样的二分类变量我们甚至可以一样存储为 character 嘛。</p>
+<p>但是，有时候有的分类变量看起来 “好像是有序” 的我就会有点犯嘀咕了。比如肿瘤的分期 Ⅰ/Ⅱ/Ⅲ/Ⅳ 、尿蛋白 +/++/+++ 这样的变量。这些变量好像本身是有顺序的，而且不遵循这个本身自由顺序好像也不大合适。我以前就是这么以为的。</p>
+<p>直到有次我真的在做回归的时候理所当然的把一些变量设置成 ordered factor 的时候，发现结果会出现一些怪怪的我不知道是什么东西，才意识到这个东西并非这么简单。</p>
+<p>下面用例子具体来说明情况。</p>
+</div>
+<div class="section level1">
+<h1>例子</h1>
+<p>生成 Logistic 回归模拟数据：</p>
+<ul>
+<li><a href="https://stats.stackexchange.com/questions/46523/how-to-simulate-artificial-data-for-logistic-regression">How to simulate artificial data for logistic regression?</a></li>
+<li><a href="https://stats.stackexchange.com/questions/49916/simulating-data-for-logistic-regression-with-a-categorical-variable">Simulating data for logistic regression with a categorical variable</a></li>
+</ul>
+<p>首先我们生成一个模拟数据，我们 x1～x4 四个变量的 100 x 4 的数据作为因变量。其中 x1、x2 都是标准正态分布，x3、x4 则是分类变量且二者完全相同的字母 A～E 只是 x3 是有序因子而 x4 是无序因子：</p>
+<pre class="r"><code>library(&quot;dummies&quot;)
+set.seed(1234)
+
+n = 1000
+x1 &lt;- rnorm(n = n, mean = 0, sd = 1)
+x2 &lt;- rnorm(n = n, mean = 0, sd = 1)
+x3 &lt;- factor(round(runif(n = n, min = 1, max = 5)),
+             ordered = TRUE, labels = LETTERS[1:5])
+x4 &lt;- factor(x3, ordered = FALSE, labels = letters[1:5])
+table(x3)
+## x3
+##   A   B   C   D   E 
+## 124 235 263 236 142
+table(x4)
+## x4
+##   a   b   c   d   e 
+## 124 235 263 236 142</code></pre>
+<p>然后我们根据 Logit 变换来构造 y。这样能保证 y ～ x 之间符合 Logistic 回归模型并且回归系数是我们已知的：</p>
+<pre class="r"><code>beta0 &lt;- 1
+betaB &lt;- -2
+betaC &lt;- 3
+betaD &lt;- -4
+betaE &lt;- 5
+
+linpred &lt;- cbind(x1, x2, 1, dummy(x4)[, -1]) %*%
+  c(2, -3, beta0, betaB, betaC, betaD, betaE)
+pi &lt;- exp(linpred) / (1 + exp(linpred))
+y &lt;- rbinom(n = n, size = 1, prob = pi)
+table(y)
+## y
+##   0   1 
+## 424 576</code></pre>
+<p>好了，x/y 都有了，我们构造一个数据把他们都装起来：</p>
+<pre class="r"><code>dat &lt;- data.frame(y, x1, x2, x3, x4)
+head(dat)
+##   y         x1         x2 x3 x4
+## 1 1 -1.2070657 -1.2053334  B  b
+## 2 0  0.2774292  0.3014667  D  d
+## 3 1  1.0844412 -1.5391452  C  c
+## 4 0 -2.3456977  0.6353707  D  d
+## 5 1  0.4291247  0.7029518  C  c
+## 6 1  0.5060559 -1.9058829  E  e
+str(dat)
+## &#39;data.frame&#39;:    1000 obs. of  5 variables:
+##  $ y : int  1 0 1 0 1 1 1 0 1 0 ...
+##  $ x1: num  -1.207 0.277 1.084 -2.346 0.429 ...
+##  $ x2: num  -1.205 0.301 -1.539 0.635 0.703 ...
+##  $ x3: Ord.factor w/ 5 levels &quot;A&quot;&lt;&quot;B&quot;&lt;&quot;C&quot;&lt;&quot;D&quot;&lt;..: 2 4 3 4 3 5 5 4 1 4 ...
+##  $ x4: Factor w/ 5 levels &quot;a&quot;,&quot;b&quot;,&quot;c&quot;,&quot;d&quot;,..: 2 4 3 4 3 5 5 4 1 4 ...</code></pre>
+<p>注意最后 str() 已经很明确的显示 x3/x4 是否为 ordered factor。</p>
+<p>现在我们就分别建立两个 Logistic 回归方程，y ～ x1 + x2 + x3 和 y ～ x1 + x2 + x4。这两个回归方程的唯一不同应该就在于其中一个变量是否设置为 ordered factor。</p>
+<pre class="r"><code>fit.ord &lt;- glm(y ~ x1 + x2 + x3, 
+               family = binomial(link = &quot;logit&quot;), 
+               data = dat)
+fit.unord &lt;- glm(y ~ x1 + x2 + x4, 
+                 family = binomial(link = &quot;logit&quot;), 
+                 data = dat)
+summary(fit.ord)
+## 
+## Call:
+## glm(formula = y ~ x1 + x2 + x3, family = binomial(link = &quot;logit&quot;), 
+##     data = dat)
+## 
+## Deviance Residuals: 
+##      Min        1Q    Median        3Q       Max  
+## -3.15325  -0.20599   0.01831   0.27052   2.57849  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)   1.5920     0.1727   9.217  &lt; 2e-16 ***
+## x1            1.9862     0.1810  10.973  &lt; 2e-16 ***
+## x2           -3.0160     0.2377 -12.688  &lt; 2e-16 ***
+## x3.L          2.9623     0.4132   7.170 7.51e-13 ***
+## x3.Q          2.5458     0.3891   6.543 6.04e-11 ***
+## x3.C          3.3676     0.3364  10.012  &lt; 2e-16 ***
+## x3^4          6.3865     0.4765  13.404  &lt; 2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 1363.10  on 999  degrees of freedom
+## Residual deviance:  450.36  on 993  degrees of freedom
+## AIC: 464.36
+## 
+## Number of Fisher Scoring iterations: 7
+summary(fit.unord)
+## 
+## Call:
+## glm(formula = y ~ x1 + x2 + x4, family = binomial(link = &quot;logit&quot;), 
+##     data = dat)
+## 
+## Deviance Residuals: 
+##      Min        1Q    Median        3Q       Max  
+## -3.15325  -0.20599   0.01831   0.27052   2.57849  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)   0.7776     0.2714   2.865  0.00417 ** 
+## x1            1.9862     0.1810  10.973  &lt; 2e-16 ***
+## x2           -3.0160     0.2377 -12.688  &lt; 2e-16 ***
+## x4b          -1.7263     0.3521  -4.903 9.41e-07 ***
+## x4c           4.0335     0.4649   8.677  &lt; 2e-16 ***
+## x4d          -4.1125     0.4536  -9.067  &lt; 2e-16 ***
+## x4e           5.8769     0.6641   8.850  &lt; 2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 1363.10  on 999  degrees of freedom
+## Residual deviance:  450.36  on 993  degrees of freedom
+## AIC: 464.36
+## 
+## Number of Fisher Scoring iterations: 7</code></pre>
+</div>
+<div class="section level1">
+<h1>解读</h1>
+<p>首先我们看到两个模型的 x1/x2 都是显著的且 p 值完全相同，模型 AIC、残差完全相同。但是很奇怪的就是在 <code>fit.ord</code> 里面关于 x3 的结果有 x3.L/x3.Q/x3.C/x3^4 这么几个奇奇怪怪的变量，而 <code>fit.unord</code> 就比较让人好理解只有 x4b ~ x4e，表示它们将 x4 = <code>a</code> 作为基准的结果。</p>
+<p>查询了一下我知道 L/Q/C 分别代表 Linear/Quadratic/Cubic，即线性（1 次方）、平方和立方，所以最后一个才会写 x3^4 即 4 次方。这个是多项式（Polynormial）模型，即把 x3 从 1～4 次方（x3 一共是 5 个水平）都纳入模型。至于是一起纳入模型还是逐个，我还没搞清楚。</p>
+<p>出现模型会纳入多项式，是 R 在回归分析中包括有序因子变量时的一种设置：</p>
+<pre class="r"><code>getOption(&quot;contrasts&quot;)
+##         unordered           ordered 
+## &quot;contr.treatment&quot;      &quot;contr.poly&quot;
+contrasts(dat$x3) # ord
+##              .L         .Q            .C         ^4
+## [1,] -0.6324555  0.5345225 -3.162278e-01  0.1195229
+## [2,] -0.3162278 -0.2672612  6.324555e-01 -0.4780914
+## [3,]  0.0000000 -0.5345225 -4.095972e-16  0.7171372
+## [4,]  0.3162278 -0.2672612 -6.324555e-01 -0.4780914
+## [5,]  0.6324555  0.5345225  3.162278e-01  0.1195229
+contrasts(dat$x4)  # un-ord
+##   b c d e
+## a 0 0 0 0
+## b 1 0 0 0
+## c 0 1 0 0
+## d 0 0 1 0
+## e 0 0 0 1</code></pre>
+<p>我们可以自己更改这个默认的参数：</p>
+<pre class="r"><code># set contrast for ord.factor to contr.treatment
+options(contrasts = c(&quot;contr.treatment&quot;, &quot;contr.treatment&quot;))
+getOption(&quot;contrasts&quot;)
+## [1] &quot;contr.treatment&quot; &quot;contr.treatment&quot;
+fit.ord2 &lt;- glm(y ~ x1 + x2 + x3, family = binomial(link = &quot;logit&quot;), data = dat)
+fit.unord2 &lt;- glm(y ~ x1 + x2 + x4, family = binomial(link = &quot;logit&quot;), data = dat)
+summary(fit.ord2)
+## 
+## Call:
+## glm(formula = y ~ x1 + x2 + x3, family = binomial(link = &quot;logit&quot;), 
+##     data = dat)
+## 
+## Deviance Residuals: 
+##      Min        1Q    Median        3Q       Max  
+## -3.15325  -0.20599   0.01831   0.27052   2.57849  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)   0.7776     0.2714   2.865  0.00417 ** 
+## x1            1.9862     0.1810  10.973  &lt; 2e-16 ***
+## x2           -3.0160     0.2377 -12.688  &lt; 2e-16 ***
+## x3B          -1.7263     0.3521  -4.903 9.41e-07 ***
+## x3C           4.0335     0.4649   8.677  &lt; 2e-16 ***
+## x3D          -4.1125     0.4536  -9.067  &lt; 2e-16 ***
+## x3E           5.8769     0.6641   8.850  &lt; 2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 1363.10  on 999  degrees of freedom
+## Residual deviance:  450.36  on 993  degrees of freedom
+## AIC: 464.36
+## 
+## Number of Fisher Scoring iterations: 7
+summary(fit.unord2) 
+## 
+## Call:
+## glm(formula = y ~ x1 + x2 + x4, family = binomial(link = &quot;logit&quot;), 
+##     data = dat)
+## 
+## Deviance Residuals: 
+##      Min        1Q    Median        3Q       Max  
+## -3.15325  -0.20599   0.01831   0.27052   2.57849  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)   0.7776     0.2714   2.865  0.00417 ** 
+## x1            1.9862     0.1810  10.973  &lt; 2e-16 ***
+## x2           -3.0160     0.2377 -12.688  &lt; 2e-16 ***
+## x4b          -1.7263     0.3521  -4.903 9.41e-07 ***
+## x4c           4.0335     0.4649   8.677  &lt; 2e-16 ***
+## x4d          -4.1125     0.4536  -9.067  &lt; 2e-16 ***
+## x4e           5.8769     0.6641   8.850  &lt; 2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 1363.10  on 999  degrees of freedom
+## Residual deviance:  450.36  on 993  degrees of freedom
+## AIC: 464.36
+## 
+## Number of Fisher Scoring iterations: 7</code></pre>
+<p>可以看到，现在两个模型都使用 <code>contr.treatment</code> 作为比较矩阵，这样就都把 x3/x4 = <code>a</code> 作为基准来计算，所以最后的结果就一模一样了。</p>
+<p>这里大概还要再多补统计方面的课。以上也参考了一些资料：</p>
+<p>一系列 stack 上搜到的问题：</p>
+<ul>
+<li><a href="https://stats.stackexchange.com/questions/175305/factor-or-ordered-factor">Factor or ordered factor?</a></li>
+<li><a href="https://stats.stackexchange.com/questions/233455/interpretation-of-l-q-output-from-a-negative-binomial-glm-with-categorical-d">Interpretation of .L &amp; .Q output from a negative binomial GLM with categorical data</a></li>
+<li><a href="https://stats.stackexchange.com/questions/101511/logistic-regression-and-ordinal-independent-variables/101556#comment197321_101513">Logistic regression and ordinal independent variables</a></li>
+<li><a href="https://stats.stackexchange.com/questions/5387/logit-with-ordinal-independent-variables">Logit with ordinal independent variables</a></li>
+<li><a href="https://stats.stackexchange.com/questions/195246/how-to-handle-ordinal-categorical-variable-as-independent-variable">How to handle ordinal categorical variable as independent variable</a></li>
+<li><a href="https://stackoverflow.com/questions/21585056/is-there-an-advantage-to-ordering-a-categorical-variable">Is there an advantage to ordering a categorical variable?</a></li>
+<li><a href="https://stackoverflow.com/questions/23396591/factors-ordered-vs-levels">Factors ordered vs. levels</a></li>
+</ul>
+<p>R 邮件列表和文档：</p>
+<ul>
+<li><a href="http://r.789695.n4.nabble.com/Models-with-ordered-and-unordered-factors-td4072225.html">r-help maillist: Models with ordered and unordered factors</a></li>
+<li><a href="https://stat.ethz.ch/R-manual/R-devel/library/stats/html/contrasts.html">R-Manual: Get and Set Contrast Matrices</a></li>
+</ul>
+<p>另外在网上看到的两篇很好的博文：</p>
+<ul>
+<li><a href="https://freakonometrics.hypotheses.org/9023">LOGISTIC REGRESSION AND CATEGORICAL COVARIATES</a></li>
+<li><a href="https://freakonometrics.hypotheses.org/9109">REGRESSION ON VARIABLES, OR ON CATEGORIES?</a></li>
+</ul>
+</div>
+<div class="section level1">
+<h1>模型评价和比较</h1>
+<p>下面再来看模型比较。</p>
+<p>有时候我们纳入非常多的变量，然后做一个回归发现很多变量都并不显著，这时候就会涉及到变量筛选。常见的做法是根据 AIC/BIC 做 stepwise 筛选。这里就不介绍各种方法及其优劣了，这个是另一个话题。</p>
+<p>普通的线性模型里，一般直接用 F 检验看模型是否显著、<span class="math inline">\(R^2\)</span>/Adj <span class="math inline">\(R^2\)</span> 来看模型效果，在 Logistic 模型里，有一些类似的东西。这属于模型的 goodness of fit，即模型本身的拟合程度。一般是在模型之间、模型与无效模型的比较上来说。</p>
+<p>我们直接看如果现在我又做一个简化模型，以及还有无效模型一起，如何比较模型是不是真的比之前要好。</p>
+<pre class="r"><code>fit.ord.reduced &lt;- glm(y ~ x1 + x2, family = binomial(), data = dat)
+fit.null &lt;- glm(y ~ 1, family = binomial(), data = dat)
+summary(fit.ord.reduced)
+## 
+## Call:
+## glm(formula = y ~ x1 + x2, family = binomial(), data = dat)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -2.6009  -0.9581   0.4435   0.8925   2.0253  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)  0.44262    0.07502   5.900 3.64e-09 ***
+## x1           0.75437    0.08289   9.101  &lt; 2e-16 ***
+## x2          -1.12694    0.09225 -12.216  &lt; 2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 1363.1  on 999  degrees of freedom
+## Residual deviance: 1095.4  on 997  degrees of freedom
+## AIC: 1101.4
+## 
+## Number of Fisher Scoring iterations: 4
+summary(fit.null)
+## 
+## Call:
+## glm(formula = y ~ 1, family = binomial(), data = dat)
+## 
+## Deviance Residuals: 
+##    Min      1Q  Median      3Q     Max  
+##  -1.31   -1.31    1.05    1.05    1.05  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)  0.30637    0.06399   4.788 1.69e-06 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 1363.1  on 999  degrees of freedom
+## Residual deviance: 1363.1  on 999  degrees of freedom
+## AIC: 1365.1
+## 
+## Number of Fisher Scoring iterations: 4
+with(fit.ord.reduced, 
+     pchisq(null.deviance - deviance, 
+            df.null - df.residual, lower.tail = FALSE))
+## [1] 7.508523e-59
+with(fit.ord, 
+     pchisq(null.deviance - deviance, 
+            df.null - df.residual, lower.tail = FALSE))
+## [1] 6.622618e-194
+vcdExtra::LRstats(vcdExtra::glmlist(fit.ord2, fit.ord.reduced, fit.null))
+## Likelihood summary table:
+##                     AIC     BIC LR Chisq  Df Pr(&gt;Chisq)    
+## fit.ord2         464.36  498.72   450.36 993    1.00000    
+## fit.ord.reduced 1101.43 1116.15  1095.43 997    0.01576 *  
+## fit.null        1365.10 1370.01  1363.10 999  1.076e-13 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+anova(fit.ord, fit.ord.reduced, test = &#39;Chisq&#39;)
+## Analysis of Deviance Table
+## 
+## Model 1: y ~ x1 + x2 + x3
+## Model 2: y ~ x1 + x2
+##   Resid. Df Resid. Dev Df Deviance  Pr(&gt;Chi)    
+## 1       993     450.36                          
+## 2       997    1095.43 -4  -645.06 &lt; 2.2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<p>类比普通线性模型的 F 检验，卡方检验显示 <code>fit.ord</code> 和 <code>fit.ord.reduced</code> 这两个模型之间有显著差别。由于简化模型 AIC 变大了，所以结论就是其实简化模型相比原来的模型更差了。（其实还可以看到，AIC 和 BIC 一个是变大一个是变小的）</p>
+<p>还有另外一个类似于 <span class="math inline">\(R^2\)</span> 的统计量也可以用来衡量模型的 goodness of fit：</p>
+<pre class="r"><code>c(model.ord = pscl::pR2(fit.ord)[&quot;McFadden&quot;],   # Pseudo R^2,  higher is better
+  model.unord = pscl::pR2(fit.unord)[&quot;McFadden&quot;],
+  model.ord.reduced = pscl::pR2(fit.ord.reduced)[&quot;McFadden&quot;])
+##         model.ord.McFadden       model.unord.McFadden 
+##                  0.6696041                  0.6696041 
+## model.ord.reduced.McFadden 
+##                  0.1963707</code></pre>
+<p>McFadden’s Pseudo <span class="math inline">\(R^2\)</span> 通常不会很大，0.2 ～ 0.4 之间已经表示模型具有很好的拟合度了。</p>
+</div>
+<div class="section level1">
+<h1>结语</h1>
+<p>这篇就写这么多吧。其实这一篇主要是将目前的一点疑惑写下来以待解决。暂时的方法还是在做因子型数据的时候，先选择以无序纳入分析，或者改变比较矩阵参数。</p>
+<p>本篇代码脚本：<a href="code/2019-03-05-r-ordered-unordered-factors_files/ordered.unordered.factors.R">ordered.unordered.factors.R</a>。</p>
+</div>
