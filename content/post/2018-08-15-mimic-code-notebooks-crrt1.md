@@ -16,7 +16,7 @@ show_toc: yes
 
 ![0.cover](/post/2018-08-15-mimic-code-notebooks-crrt1_files/0.cover.png)
 
-花了几天时间把 [`mimic-code/notebooks/crrt-notebook.ipynb`](https://github.com/MIT-LCP/mimic-code/blob/master/notebooks/crrt-notebook.ipynb) 从头到尾看了一遍。虽然消化得还不是很好，但是觉得这一篇教程真的是干货满满。决定还是再花点时间仔细跟着 tutorial 走一遍并且整理一遍。和前面一样，我还是尽量放到 R 里做，R 不好做的我再到 Juputer 里做。R 的设置在上一篇里写过，这里我就只写 Python 里的准备工作了。需要的东西有：
+花了几天时间把 [`mimic-code/notebooks/crrt-notebook.ipynb`](https://github.com/MIT-LCP/mimic-code/blob/master/notebooks/crrt-notebook.ipynb) 从头到尾看了一遍。虽然消化得还不是很好，但是觉得这一篇教程真的是干货满满。决定还是再花点时间仔细跟着 tutorial 走一遍并且整理一遍。和前面一样，我还是尽量放到 R 里做，R 不好做的我再到 Jupyter 里做。R 的设置在上一篇里写过，这里我就只写 Python 里的准备工作了。需要的东西有：
 
 - PostgreSQL 运行，本地建立好 MIMIC-III 数据库
 - Python，我是 conda 环境的 Python 3.6。使用 Jupyter 的话当然还得搭配浏览器
@@ -41,12 +41,12 @@ CRRT 是临床出现一种新的代替肾脏治疗方法 , 即每天持续 24 �
 
 ## 框架
 
-在 MIMIC-III 数据库中，定义一个临床概念包含一下几个关键步骤：
+在 MIMIC-III 数据库中，定义一个临床概念包含以下几个关键步骤：
 
 1. 鉴定描述这一临床概念的关键词和语句
 2. 在 `d_items` 表格中搜索这些关键词（如果是实验室检查的话要看 `d_labitems` 表格）。
 3. 从 `d_items` 表格的 `linksto` 这一列指定的表格中提取数据
-4. 用提取数据的规则制定定义这一临床概念
+4. 用提取数据的规则定义这一临床概念
 5. 通过逐个查看和聚合操作做验证
 
 这整个过程是迭代进行的，也没有上面描述的那么清晰——验证时你可能又要回去修改数据提取的规则，等等。而且对于 MIMIC-III 数据，这整个过程必须重复一次：一次是提取 MetaVision 的数据，一次是 CareVue 的。
