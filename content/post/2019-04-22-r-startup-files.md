@@ -144,7 +144,7 @@ u <- function() {
 options(prompt = "\033[0;36mR >>> \033[0m", continue = "... ", editor = "vim")
 ```
 
-定义了终端 Prompt 样式和代码分行时行首的样式，以及编辑器设置成 *Vim*。
+定义了终端 Prompt 样式和代码分行时行首的样式，以及编辑器设置成 Vim。
 
 ```R
 options(show.signif.stars = TRUE, menu.graphics = FALSE)

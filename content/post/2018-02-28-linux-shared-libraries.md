@@ -110,7 +110,7 @@ extern void foo(void);
 #endif  // foo_h__
 ```
 
-`foo.h` 定义了一个接口使用我们的函数，这也是我们想生成库的函数，这个库里将只有这一个简单的函数`foo()`。`foo.c` 则是这个函数的具体实现，`main.c` 是一个用到我们库的主程序。最终我么想要用 `main.c` 生成一个可执行文件，这个可执行文件引用我们从 `foo.c` 生成的动态共享库。
+`foo.h` 定义了一个接口使用我们自己写的小函数 `foo()`，这也是我们想生成库的函数，最后得到的这个库里也将只有这一个简单的函数`foo()`。`foo.c` 则是这个函数的具体实现，`main.c` 是一个用到我们库的主程序。最终我们想要用 `main.c` 生成一个可执行文件，这个可执行文件将会引用我们从 `foo.c` 生成的动态共享库。
 
 ### Step 1: 使用 -fpic 选项编译
 
@@ -179,14 +179,13 @@ collect2: ld returned 1 exit status
 
 链接器并不知道该去哪里找 `libfoo.so`（事实上是不会去标准系统路径以外的地方去找共享库）。我们要指定 gcc 去哪找共享库。
 
-
-gcc 有一个默认的搜索列表，但我们的工作目录并不在这个列表中。我们需要告诉 gcc 去哪里找到 `libfoo.so`。这就要用到 -L 选项。这里我们直接使用当前目录 `.` 就行：
+gcc 有一个默认的搜索列表，但我们的工作目录并不在这个列表中，所以我们需要告诉 gcc 去哪里找 `libfoo.so`。这就要用到 `-L` 选项。这里我们直接使用当前目录 `.` 就行：
 
 ```bash
 ➜ gcc -Wall -o test main.c -L. -lfoo -lc
 ```
 
-注意，这时候 -L 和 -l 两个选项一起用，一个指定搜索路径，另一个指定要搜索的库。
+注意，这时候 `-L` 和 `-l` 两个选项一起用，一个指定搜索路径，另一个指定要搜索的库。
 
 这样就能顺利编译出可执行文件 `test`。我们执行看看：
 
@@ -291,15 +290,15 @@ Hello, I'm a shared library
 
 也没问题。
 
-注意这里的 -Wl,-rpath=. 这个选项的写法。-Wl 代表选项传给 linker，类似的：
+注意这里的 `-Wl,-rpath=.` 这个选项的写法。`-Wl` 代表选项传给 linker，类似的：
 
 | Options                 | Description                                          |
 |:------------------------|:-----------------------------------------------------|
-|-Wa,\<options\>          |Pass comma-separated <options> on to the assembler.|
-|-Wp,\<options\>          |Pass comma-separated <options> on to the preprocessor.|
-|-Wl,\<options\>          |Pass comma-separated <options> on to the linker.|
+|-Wa,\<options\>          |Pass comma-separated _options_ on to the assembler.|
+|-Wp,\<options\>          |Pass comma-separated _options_ on to the preprocessor.|
+|-Wl,\<options\>          |Pass comma-separated _options_ on to the linker.|
 
-另外注意这里 -L. 选项也还在。
+另外注意这里 `-L.` 选项也还在。
 
 `rpath` 方法有一个优点，对于每个程序编译时我们都可以通过这个选项单独罗列它自己的共享库位置，因此不同的程序可以在指定到不同路径去加载需要的库文件，而不需要一次次的去指定 `LD_LIBRARY_PATH` 环境变量。
 
@@ -333,7 +332,7 @@ lib 是前缀，xxx 则是这个库的“名字”，so 表明这是个 shared o
 
 搞清楚了这个就很好懂 soname 了，soname 一般就是 libxxx.so.major，soname 的存在保证只要程序找的时候 soname 不变(即接口不变)那么程序就能正常运行。比如库升级了 real name 必然是会变化的，但只要 major 不变，把 soname 文件重新指向更新的库文件即可。如果安装了一个 major 发生变化的新版本的库，那就新生成一个 soname 指向这个库，这样就实现了库文件的升级和多个版本库文件的共存。需要新版本库的程序去找那个新生成的 soname，原来的程序还是找原来的 soname，大家皆大欢喜，而库升级也完成了。
 
-而 linker name，从名字就看出来它和链接器 linker 有关，linker name 不包含任何版本信息，用来方便链接器查找库文件。比如我们前面在 gcc 命令里每次指定 libfoo.so 都只写了 -lfoo，链接器会自己去找 libfoo.so，这时候它要找的其实就是 linker name 所代表的文件。
+而 linker name，从名字就看出来它和链接器 linker 有关，linker name 不包含任何版本信息，用来方便链接器查找库文件。比如我们前面在 gcc 命令里每次指定 libfoo.so 都只写了 `-lfoo`，链接器会自己去找 libfoo.so，这时候它要找的其实就是 linker name 所代表的文件。
 
 ### ldd 和 ldconfig
 
@@ -507,7 +506,7 @@ lrwxrwxrwx 1 root root  15 Jan  6 20:36 libfoo.so.1 -> libfoo.so.1.0.1
 ldconfig 会去读 /etc/ld.so.conf 这个文件：
 
 ```bash
-➜ more /etc/ld.so.conf 
+➜ cat /etc/ld.so.conf 
 include /etc/ld.so.conf.d/*.conf
 ```
 
@@ -516,10 +515,10 @@ include /etc/ld.so.conf.d/*.conf
 ```bash
 ➜ ls /etc/ld.so.conf.d 
 fakeroot-x86_64-linux-gnu.conf  libc.conf  x86_64-linux-gnu.conf  zz_i386-biarch-compat.conf
-➜ more /etc/ld.so.conf.d/libc.conf 
+➜ cat /etc/ld.so.conf.d/libc.conf 
 # libc default configuration
 /usr/local/lib
-➜ more /etc/ld.so.conf.d/x86_64-linux-gnu.conf 
+➜ cat /etc/ld.so.conf.d/x86_64-linux-gnu.conf 
 # Multiarch support
 /usr/local/lib/x86_64-linux-gnu
 /lib/x86_64-linux-gnu
@@ -531,7 +530,7 @@ fakeroot-x86_64-linux-gnu.conf  libc.conf  x86_64-linux-gnu.conf  zz_i386-biarch
 但是关于 linker 的标准搜索路径，似乎大家看法不太一样，StackOverflow 上的问题 [How to print the ld(linker) search path](How to print the ld(linker) search path) 回答很多。我仅仅演示一下，具体讨论去看网页吧：
 
 ```bash
-➜ sudo ldconfig -v 2>/dev/null | grep -v ^$'\t'
+➜ sudo ldconfig -v 2>/dev/null |grep -v ^$'\t'
 /usr/lib/x86_64-linux-gnu/libfakeroot:
 /usr/local/lib:
 /lib/x86_64-linux-gnu:
@@ -541,7 +540,7 @@ fakeroot-x86_64-linux-gnu.conf  libc.conf  x86_64-linux-gnu.conf  zz_i386-biarch
 /lib:
 /usr/lib:
 
-➜ ld --verbose | grep SEARCH_DIR | tr -s ' ;' \\012
+➜ ld --verbose |grep SEARCH_DIR |tr -s ' ;' \\012
 SEARCH_DIR("=/usr/local/lib/x86_64-linux-gnu")
 SEARCH_DIR("=/lib/x86_64-linux-gnu")
 SEARCH_DIR("=/usr/lib/x86_64-linux-gnu")
@@ -555,7 +554,7 @@ SEARCH_DIR("=/usr/lib")
 SEARCH_DIR("=/usr/x86_64-linux-gnu/lib64")
 SEARCH_DIR("=/usr/x86_64-linux-gnu/lib")
 
-➜ gcc -print-search-dirs | sed '/^lib/b 1;d;:1;s,/[^/.][^/]*/\.\./,/,;t 1;s,:[^=]*=,:;,;s,;,;  ,g' | tr \; \\012
+➜ gcc -print-search-dirs |sed '/^lib/b 1;d;:1;s,/[^/.][^/]*/\.\./,/,;t 1;s,:[^=]*=,:;,;s,;,;  ,g' |tr \; \\012
 
 libraries:
   /usr/lib/gcc/x86_64-linux-gnu/8/:/usr/x86_64-linux-gnu/lib/x86_64-linux-gnu/8/:/usr/x86_64-linux-gnu/lib/x86_64-linux-gnu/:/usr/x86_64-linux-gnu/lib/:/usr/lib/x86_64-linux-gnu/8/:/usr/lib/x86_64-linux-gnu/:/usr/lib/:/lib/x86_64-linux-gnu/8/:/lib/x86_64-linux-gnu/:/lib/:/usr/lib/x86_64-linux-gnu/8/:/usr/lib/x86_64-linux-gnu/:/usr/lib/:/usr/x86_64-linux-gnu/lib/:/usr/lib/:/lib/:/usr/lib/
