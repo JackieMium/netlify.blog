@@ -1,0 +1,129 @@
+---
+title: 学习怎么用 R 画多边形
+author: Jackie
+date: '2019-09-08'
+slug: r-polygon
+categories:
+  - R
+tags:
+  - 基础
+  - R
+  - Code
+disable_comments: no
+show_toc: yes
+output:
+  blogdown::html_page:
+    toc: yes
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#polygon-">polygon 作图基本语法</a></li>
+<li><a href="#section">文档示例</a></li>
+</ul>
+</div>
+
+<p>首先隆重推荐一下一本新书：<a href="https://msg-book.netlify.com/">现代统计图形</a> 。这是谢益辉老师多年前写的书，最近在统计之都论坛一些人的协助之下转移到 <strong>bookdown </strong> 平台，具体可以看 <a href="https://d.cosx.org/d/420857-r">诚邀广大R语言、数据可视化爱好者和我们一起搬迁升级谢益辉著作《现代统计图形》</a> 和 GitHub 的仓库 <a href="https://github.com/XiangyunHuang/MSG-Book">XiangyunHuang/MSG-Book</a>。我花两三天走马观花的浏览了一遍，有种我以前是不是学了个假的 R 的感觉。也感觉到以前可能是有点中了 <strong>tidyverse</strong> 和 <strong>ggplot2</strong> 的毒，以至于很多 base R 里的东西我其实都没太掌握。做了一些记录，把很希望继续了解的东西都记下来了，想有空就学一点，同时这本书也还要仔细看。</p>
+<p>今天主要是做一个 Logistic 回归的时候做 ROC 曲线想把可信区间一起画上去，手头已经有了数据，发现没有现成的函数可以直接画。想了一想之前看到 MSG 里类似例子可以用多边形画出随意的形状，所以就看了一下果然的到了我想要的图。</p>
+<p>R 画多边形，主要是 <code>polygon()</code> 函数。</p>
+<div id="polygon-" class="section level2">
+<h2>polygon 作图基本语法</h2>
+<p><code>polygon()</code> 组图非常简单，直接提供 x/y 它就根据这一系列坐标为边界围成一个多边形。先直接看例子：</p>
+<pre class="r"><code>set.seed(1234)
+x &lt;- c(1:10, 10:1)
+y &lt;- c(rnorm(10, mean = 3), rnorm(10, mean = 5))
+data.frame(x, y)</code></pre>
+<pre><code>##     x         y
+## 1   1 1.7929343
+## 2   2 3.2774292
+## 3   3 4.0844412
+## 4   4 0.6543023
+## 5   5 3.4291247
+## 6   6 3.5060559
+## 7   7 2.4252600
+## 8   8 2.4533681
+## 9   9 2.4355480
+## 10 10 2.1099622
+## 11 10 4.5228073
+## 12  9 4.0016136
+## 13  8 4.2237461
+## 14  7 5.0644588
+## 15  6 5.9594941
+## 16  5 4.8897145
+## 17  4 4.4889905
+## 18  3 4.0888046
+## 19  2 4.1628283
+## 20  1 7.4158352</code></pre>
+<p>现在把这个数据每一行 x/y 想象一个点的坐标，画出点然后依次连线这就是一个多边形了：</p>
+<pre class="r"><code>plot(1:10, 1:10, type = &#39;n&#39;, 
+     ylim = c(1, 8),
+     xlab = &quot;&quot;, ylab = &quot;&quot;)
+polygon(x, y, lwd = 2, col = &#39;green&#39;, border = &quot;red&quot;)</code></pre>
+<p><img src="/post/2019-09-08-r-polygon_files/figure-html/simp-polygon-1.png" width="672" /></p>
+<p>由于画多边形的时候最后会自动把最后一个点和起始点相连，所以其实更常见的做法是，首尾两个点只提供一次：</p>
+<pre class="r"><code>x &lt;- c(1:10, 9:2)
+y &lt;- c(rnorm(10, mean = 3), rnorm(8, mean = 5))
+plot(1:10, 1:10, type = &#39;n&#39;, 
+     ylim = c(1, 8),
+     xlab = &quot;&quot;, ylab = &quot;&quot;)
+polygon(x, y, lwd = 3, 
+        col = &quot;red&quot;,
+        border = &quot;green&quot;,
+        lty = &quot;dashed&quot;)</code></pre>
+<p><img src="/post/2019-09-08-r-polygon_files/figure-html/polygon-1.png" width="672" /></p>
+<p>这样画出来的多边形和我们拿笔在纸上从第一个点一口气连接到最后一个点画一个多边形其实是一个意思。</p>
+<p>下面看看文档里的几个例子也挺有意思。</p>
+</div>
+<div id="section" class="section level2">
+<h2>文档示例</h2>
+<pre class="r"><code>x &lt;- c(1:9, 8:1)
+y &lt;- c(1, 2*(5:3), 2, -1, 17, 9, 8, 2:9)
+op &lt;- par(mfcol = c(3, 1))
+for(xpd in c(FALSE, TRUE, NA)) {
+  plot(1:10, main = paste(&quot;xpd =&quot;, xpd))
+  box(&quot;figure&quot;, col = &quot;pink&quot;, lwd = 3)
+  polygon(x, y, 
+          xpd = xpd,
+          lty = 2, lwd = 2, 
+          col = &quot;orange&quot;, border = &quot;red&quot;)
+}
+par(op)</code></pre>
+<p><img src="/post/2019-09-08-r-polygon_files/figure-html/xpd-1.png" width="576" /></p>
+<p>这个例子主要为了展示 <code>xpd</code> 参数的使用。<code>xpd</code> 其实是个 <code>par()</code> 的参数，并不是 <code>polygon()</code> 独有的。
+<code>xpd</code> 取值为 <code>NA</code> 或者 <code>TRUE</code>/<code>FALSE</code>，用来控制作图超过边界时候的处理方法。<code>FALSE</code> 表示把图形裁剪到作图区（plot region)，<code>TRUE</code> 表示把图形裁剪到图形区（figure region），<code>NA</code> 表示裁剪到设备区域（device region）。
+在这个例子里，作图区就是每个图里坐标轴围成的区域；图形区就是整个设备被分成三块由粉红色边框包围的三个区域，而设备区其实就是这张图可见区。详细了解各个区域和作图边界调整也可以看 <a href="https://msg-book.netlify.com/tricks.html#fig:plot-region">MSG 的章节</a>。</p>
+<pre class="r"><code>n &lt;- 100
+xx &lt;- c(0:n, n:0)
+yy &lt;- c(c(0, cumsum(stats::rnorm(n))), 
+        rev(c(0, cumsum(stats::rnorm(n)))))
+plot(xx, yy, type = &quot;n&quot;, xlab = &quot;Time&quot;, ylab = &quot;Distance&quot;)
+polygon(xx, yy, col = &quot;gray&quot;, border = &quot;red&quot;)
+title(&quot;Distance Between Brownian Motions&quot;)</code></pre>
+<p><img src="/post/2019-09-08-r-polygon_files/figure-html/cumsum-1.png" width="672" /></p>
+<p>第二个例子主要是用到了 <code>cumsum()</code>，就是不停地累加。这个图为什么叫布朗运动之间的距离呢？</p>
+<p>这么理解，假设现在两个点都在坐标轴点原点处，然后它们就开始在以 1Hz 的频率在 X 轴上左右做布朗运动，正负分别表示向右➡️️或者向左⬅️️。两个点都运动 100s，布朗运动嘛，完全随机的，所以这里就用正态分布模拟每次运动的方向和距离。由于每个时间点由于都是累加的，所以当前位置都是相对于原点的位置，两个点与原点的距离相减就是两个点之间的距离，就是图中灰色的区域了。</p>
+<pre class="r"><code>op &lt;- par(mfrow = c(2, 1))
+plot(c(1, 9), 1:2, type = &quot;n&quot;)
+polygon(1:9, c(2, 1, 2, 1, 1, 2, 1, 2, 1), 
+        col = c(&quot;red&quot;, &quot;blue&quot;),
+        border = c(&quot;green&quot;, &quot;black&quot;),
+        lwd = 3, lty = c(&quot;dashed&quot;, &quot;solid&quot;))
+plot(c(1, 9), 1:2, type = &quot;n&quot;)
+polygon(1:9, c(2, 1, 2, 1, NA, 2, 1, 2, 1), 
+        col = c(&quot;red&quot;, &quot;blue&quot;),
+        border = c(&quot;green&quot;, &quot;black&quot;),
+        lwd = 3, lty = c(&quot;dashed&quot;, &quot;solid&quot;))
+par(op)</code></pre>
+<p><img src="/post/2019-09-08-r-polygon_files/figure-html/multiple-1.png" width="672" /></p>
+<p>这个例子首先展示了利用数据中 <code>NA</code> 巧妙的把作图打断进而得到两个分开的图形的用法。注意作图的时候一旦碰到 <code>NA</code> 的时候会自动把最后一个点和第一个点连起来。</p>
+<p>然后是这里用了边界和填充颜色、边界线条类型的自动循环利用。在第一幅图里由于只有一个图形所以提供的元素只有第一个使用了，而第二幅图里有两个图形，所以最后刚好两个图形分别使用了不同的图形元素。</p>
+<pre class="r"><code>plot(c(1, 9), 1:2, type = &quot;n&quot;)
+polygon(1:9,
+        c(2, 1, 2, 1, NA, 2, 1, 2, 1),
+        density = c(10, 20),
+        angle = c(-45, 45))</code></pre>
+<p><img src="/post/2019-09-08-r-polygon_files/figure-html/line-shaded-1.png" width="672" /></p>
+<p>最后这个示例还是两个图形，但是在多边形内部加了阴影。加阴影通过 <code>density</code> 参数完成，<code>angle</code> 参数控制添加线条的角度，正负值分别表示逆时针和顺时针。</p>
+<p>最后再次提一下，<a href="https://msg-book.netlify.com/elements.html#sec:polygon">MSG 里多边形的例子</a> 也很有趣。</p>
+</div>
