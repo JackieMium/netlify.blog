@@ -675,7 +675,7 @@ summary(birthwt)
 ```r
 output2 <- bic.glm(low ~ age + lwt + smoke + ptl + ht + ui +
                        ftv + race, glm.family = binomial, data = birthwt)
-summary(output2
+summary(output2)
 ```
 
 ![output3_summary](/post/2019-01-16-logistic-regression-examples-aic-and-bic_files/output3_summary.png)
