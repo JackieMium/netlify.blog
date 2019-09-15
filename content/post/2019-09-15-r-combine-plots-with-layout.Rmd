@@ -100,7 +100,7 @@ barplot(yhist$counts, axes = FALSE,
 
 最后作为 One More Thing（虽然我也不是果粉），来看看 `par(fig)` 的一个例子：
 
-```{r eg-scatter-boxplot}
+```{r eg-scatter-boxplot, warning=FALSE}
 par(fig = c(0, 0.8, 0, 0.8), new = TRUE)
 plot(mtcars$wt, mtcars$mpg, 
      xlab = "Car Weight",

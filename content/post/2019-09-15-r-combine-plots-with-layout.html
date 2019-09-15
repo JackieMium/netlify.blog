@@ -79,10 +79,8 @@ barplot(yhist$counts, axes = FALSE,
 <p>这个例子里一个很有意思的设置是矩阵里的 <code>0</code> 用做占位。</p>
 <hr />
 <p>最后作为 One More Thing（虽然我也不是果粉），来看看 <code>par(fig)</code> 的一个例子：</p>
-<pre class="r"><code>par(fig = c(0, 0.8, 0, 0.8), new = TRUE)</code></pre>
-<pre><code>## Warning in par(fig = c(0, 0.8, 0, 0.8), new = TRUE): calling par(new=TRUE)
-## with no plot</code></pre>
-<pre class="r"><code>plot(mtcars$wt, mtcars$mpg, 
+<pre class="r"><code>par(fig = c(0, 0.8, 0, 0.8), new = TRUE)
+plot(mtcars$wt, mtcars$mpg, 
      xlab = &quot;Car Weight&quot;,
      ylab = &quot;Miles Per Gallon&quot;)
 par(fig = c(0, 0.8, 0.55, 1), new = TRUE)
