@@ -1,7 +1,7 @@
 [![Netlify Status](https://api.netlify.com/api/v1/badges/6f4e984e-4c04-477f-80af-3bc2996fa1b1/deploy-status)](https://app.netlify.com/sites/jiangjun/deploys)
 
 这是我用 Blogdown + Hugo 搭建在 [Netlify.com](https://www.netlify.com) 上的博客的仓库。
-详情请访问 [Jackie's Personal Blog](https://jiangjun.netlify.com/) 。  
+详情请访问 [https://jiangjun.netlify.com](https://jiangjun.netlify.com/) 或者 [https://jiangjun.link/](https://jiangjun.link/)。  
 
 
 [![License: CC BY-NC-SA 4.0](https://github.com/JackieMium/netlify.blog/blob/master/static/images/License-CC-BY-NC-SA-4.0.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)   
