@@ -1,0 +1,313 @@
+---
+title: alluvial diagram 冲积图
+author: Jackie
+date: '2019-06-10'
+slug: alluvial-diagram
+categories:
+  - R
+tags:
+  - ggplot2
+  - R
+  - Viz
+disable_comments: no
+show_toc: yes
+output:
+  blogdown::html_page:
+    toc: yes
+---
+
+```{r setup, echo=FALSE, message = FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE,collapse = TRUE)
+library("alluvial")
+library("ggalluvial")
+library("ggplot2")
+```
+
+![geom_alluvium](/post/2019-06-10-ggplot-geom-alluvium_files/0.geom_alluvium.png)
+
+最近看文献看到一种新的数据可视化图，Alluvia 图，中文应该是冲积图？不知道。这种图形用来展示分类数据，尤其是多个分类数据以及 Logistic 回归里，美观而且直观，所以决定看一下。
+
+参考主要是 [**alluvial**](https://cran.r-project.org/web/packages/alluvial/vignettes/alluvial.html) 和 [**ggalluvial**](https://cran.r-project.org/web/packages/ggalluvial/vignettes/ggalluvial.html) 的文档 ，有删改。
+
+**alluvial** 是传统的 Alluvia 图作图包，而 **ggalluvial** 从名字就能看出来是 **ggplot2** 包。
+
+主要看 alluvial 的用法，因为它对应 base 作图系统，所以语法简单直接。**alluvial** 接受的数据形式是宽数据，即整理好的频数表形式。**ggalluvial** 是 **ggplot2** 语法系统，自定义程度高，用法丰富。**ggalluvial** 接受长数据和宽数据两种形式，同时为了保持 _tidyverse_ 语法一致，不支持频数表🙅。后者这里只是简单看一下，用到复杂的数据可视化再去仔细看用法把吧。
+
+主要涉及的数据是耳熟能详的 Titanic：Survived 变量是二分类表示是否幸存，然后是 Class、Sex 和 Age 几个二/多分类变量。由于 **alluvial** 作图接受宽数据形式，而 Titanic 数据本身是表格数据，
+所以还需要首先 `as.data.frame()` 一下，转成宽数据形式数据框之后就会多出最后一列 `Freq` 了表示频数的列。数据形式是否符合 **alluvial** 作图要求也可以直接通过 `ggalluvial::is_alluvia_form()` 函数来判断。
+
+```{r data, collapse=TRUE, message=FALSE}
+library("alluvial")
+library("dplyr")
+library("magrittr")
+data("Titanic")
+
+Titanic
+titan <- as.data.frame(Titanic, stringsAsFactors = FALSE)
+
+titan %>% 
+  head() %>% 
+  knitr::kable()
+
+ggalluvial::is_alluvia_form(titan)
+```
+
+# Quick Start with alluvial
+
+首先快速看 **alluvial** 可视化泰坦尼克数据的例子：
+
+```{r alluvial}
+alluvial(titan[,1:4], freq = titan$Freq,
+         col = ifelse(titan$Survived == "Yes", "darkgreen", "darkgrey"),
+         border = ifelse(titan$Survived == "Yes", "darkgreen", "darkgrey"),
+         hide = titan$Freq == 0,
+         cex = 0.7)
+```
+
+就这张图来简单了解一下 alluvia 图的一些基本特点：
+
+- 横轴是不同的分量变量，自变量和因变量都可以画进来；纵轴是对应分了变量的不同类别的比例
+- 一个变量在纵轴上柱子的高度表示分类的比例大小；从变量里画出的条带的宽度也代表相应部分比例大小
+- 条带颜色可以再添加一个维度的信息
+
+知道这些以后，仅从上面的图就可以解读到：
+
+- 船上最多的人是船员，男性远多于女性、成人远多于儿童，以及幸存者远少于遇难者🕯️
+- 遇难者大多数来自三等舱和船员，而女性遇难者比例明显低于男性
+- 船员绝大多数是男性，并且从船员到一等舱，女性比例越来越高，整体幸存者比例也越来越高
+- 绝大多数女性遇难者来自三等舱，而一等舱的女性几乎全都幸存
+
+再看一个时间序列数据的例子：
+
+```{r time}
+Refugees %>% 
+  head() %>% 
+  knitr::kable()
+
+set.seed(39) # for nice colours
+cols <- hsv(h = sample(1:10/10), 
+            s = sample(3:12)/15,
+            v = sample(3:12)/15)
+
+alluvial_ts(Refugees, wave = .3, ygap = 5, 
+            col = cols, plotdir = 'centred', alpha=.9,
+            grid = TRUE, grid.lwd = 5, xmargin = 0.2, 
+            lab.cex = .7,  axis.cex = .8, leg.cex = .7, leg.col = 'white',
+            ylab = '', xlab = '', border = NA, 
+            title = "UNHCR-recognised refugees\nTop 10 countries (2003-13)\n")
+```
+
+# 更多用法和自定义
+
+**alluvial** 简单作图要求提供一个数据框作为数据参数以及一个存放各个分类的频数的向量参数。默认情况下会使用带透明的灰色条带作图。下面是只用 Titanic 数据的 `Class` 和 `Survived` 两个变量作图的情况：
+
+```{r twoV}
+# Survival status and Class
+titan %>% group_by(Class, Survived) %>%
+  summarise(n = sum(Freq)) -> tit2d
+
+alluvial(tit2d[,1:2], freq = tit2d$n, blocks = FALSE)
+```
+
+三个变量:
+
+```{r threeV}
+# Survival status, Sex, and Class
+titan %>% group_by(Sex, Class, Survived) %>%
+  summarise(n = sum(Freq)) -> tit3d
+
+alluvial(tit3d[,1:3], freq = tit3d$n, block = TRUE)
+```
+
+注意 `block` 参数的作用。
+
+## 隐藏
+
+`hide` 参数可以用来隐藏一些条带，比如下面的例子隐藏了所有频数小于 100 的条带
+
+```{r hide}
+tit3d %>% 
+  dplyr::filter(n < 100)
+
+alluvial(tit3d[,1:3], freq=tit3d$n, hide = tit3d$n < 100)
+```
+
+图中就能看到这些少于 100 的条带隐藏之后图中有很多空缺（gap）。要去掉这些 gap 通过 **alluvial** 包本身无法完成，而需要在作图数据中筛选数据再作图。
+
+## 改变层次
+
+默认情况下 **alluvial** 作图时条带的顺序就是提供数据的行的顺序，行在前的在上层（注意画图相当于从下往上画条带，所以第一个条带在图的最前图层，但是位置却在下方）。改变数据里行的顺序就能改变条带的顺序：
+
+```{r layers, collapse = TRUE}
+d <- data.frame(
+  x = c(1, 2, 3),
+  y = c(3 ,2, 1),
+  freq = c(1, 1, 1)
+)
+d
+
+alluvial(d[, 1:2],
+         freq = d$freq,
+         col = 1:3,
+         alpha = 1)
+# Reversing the order
+alluvial(d[3:1, 1:2],
+         freq = d$freq,
+         col = 3:1,
+         alpha = 1)
+```
+
+注意后面的代码里指定了颜色并且也是 `3:1` 反过来的，这是为了对应反过来的行，与之前的图颜色可以保持一致。
+
+通过 `layer` 参数指定图层顺序可以简单的达到一样的目的：
+
+```{r layer_para}
+alluvial(
+  d[, 1:2],
+  freq = d$freq,
+  col = 1:3,
+  alpha = 1,
+  layer = 3:1
+)
+```
+
+但是通过参数改图层顺序就不需要再手动去调整颜色顺序了。
+
+`layer` 参数可以接受一个逻辑值，比如有时候只想指定每个特定条带处于最上方。下面的例子里把代表所有幸存者的条带放在最上面：
+
+```{r layer_logic}
+alluvial(tit3d[,1:3], freq = tit3d$n, 
+         col = ifelse( tit3d$Survived == "Yes", "orange", "grey" ),
+         alpha = 0.8,
+         layer = tit3d$Survived == "No"
+)
+```
+
+处理逻辑值的时候由 `order()` 完成，所以事实上是对 `TRUE`/`FALSE` 排序，而 `TRUE`/`FALSE` 分别是 1/0，所以结果是 `FALSE` 在前而 `TRUE` 在后。所以上面画图的结果就是反而 `tit3d$Survived == "No"` 是在下面。
+
+# ggplot2: ggalluvial
+
+首先简单粗暴的看一个例子吧：
+
+```{r gg}
+library("ggalluvial")
+
+Titanic %>% 
+  as.data.frame() %>%
+  head() %>% 
+  knitr::kable()
+
+ggplot(as.data.frame(Titanic),
+       aes(y = Freq, 
+           axis1 = Survived, axis2 = Sex, axis3 = Class)) +
+  geom_alluvium(aes(fill = Class), 
+                width = 0, knot.pos = 0, reverse = FALSE) +
+  guides(fill = FALSE) +
+  geom_stratum(width = 1/8, reverse = FALSE) +
+  geom_text(stat = "stratum", label.strata = TRUE, reverse = FALSE) +
+  scale_x_continuous(breaks = 1:3, labels = c("Survived", "Sex", "Class"))
+```
+
+**ggalluvial** 支持长数据和宽数据格式，但为了保持与 _tidyverse_ 语法的一致性而不支持表格数据格式（而上面用到的 Titanic 和下面会用到的 UCBAdmissions 都是 的原始数据表格数据的）。
+
+## 宽数据格式
+
+宽数据格式每一行代表由列取值不同的组合所形成的一种人群，然后会有一列单独表示权重（即该人群的频数）。宽数据的每一行对应到冲积图中相当于一个条带。`as.data.frame()` 默认情况下就会把频数表转换成宽数据形式。
+UCBAdmissions 是一个 Berkeley 研究生申请情况的简单数据。Admit 是申请成功还是被拒，Gender 是性别而 Dept 表示部门。来 `as.data.frame()` 看一下：
+
+```{r UCBAdmissions}
+is_alluvia_form(as.data.frame(UCBAdmissions), axes = 1:3, silent = TRUE)
+
+UCBAdmissions %>% 
+  as.data.frame() %>% 
+  head() %>% 
+  knitr::kable()
+```
+
+果然，`as.data.frame()` 会把数据转换成刚刚上面描述的宽数据形式。然后这个数据就可以直接拿来做冲积图了。
+
+**ggalluvial** 作图语法也是与 **alluvial** 相一致的：用户需要指定 `axis` 参数，这一参数会被 `stat_alluvium()` 和 `stat_stratum()` 识别处理：
+
+```{r geom_alluvial}
+ggplot(as.data.frame(UCBAdmissions),
+       aes(y = Freq, axis1 = Gender, axis2 = Dept)) +
+  geom_alluvium(aes(fill = Admit), width = 1/12) +
+  geom_stratum(width = 1/12, fill = "black", color = "grey") +
+  geom_label(stat = "stratum", label.strata = TRUE) +
+  scale_x_discrete(limits = c("Gender", "Dept"), expand = c(.05, .05)) +
+  scale_fill_brewer(type = "qual", palette = "Set1") +
+  ggtitle("UC Berkeley admissions and rejections, by sex and department") +
+  theme_bw()
+```
+
+这个作图用到了常用的很多语句，其中最主要的是 `geom_alluvium()` 和 `geom_stratum()`，前者画条带，后者画柱子。其他可以一个一个去掉看看图形发生变化来了解每一个参数的作用。
+
+
+
+**ggalluvial** 作出来的图有一个有点就是 Y 轴是有意义的。Y 轴是依据原本数据的尺度而没有做任何转换直接生成的，数据中也没有间隔，所以 Y 轴上画的柱子实际上相当于堆叠起来的柱状图。
+
+## 长数据格式
+
+**ggalluvial** 识别的长数据格式是类似于 **dyplr** 的 `gather()` 得到的数据那种形式，每一行都代表冲积图中的一个条带。
+
+```{r to_lodes_form, collapse=TRUE}
+UCB_lodes <-  to_lodes_form(as.data.frame(UCBAdmissions),
+                           axes = 1:3,
+                           id = "Cohort")
+head(UCB_lodes, n = 12)
+
+is_lodes_form(
+  UCB_lodes,
+  key = x,
+  value = stratum,
+  id = Cohort,
+  silent = TRUE)
+```
+
+还有一个 **ggalluvial** 能做的是根据数据画 `geom_flow()` 图。 `geom_flow()` 图在每一个轴上可以重新设置数据映射关系，用来展示同一数据的变化、重复测量数据会很合适：
+
+```{r  geom_flow, collapse=TRUE}
+data(majors)
+majors$curriculum <- as.factor(majors$curriculum)
+head(majors)
+
+ggplot(majors,
+       aes(x = semester,
+           stratum = curriculum,
+           alluvium = student,
+           fill = curriculum, 
+           label = curriculum)) +
+  scale_fill_brewer(type = "qual", 
+                    palette = "Set2") +
+  geom_flow(stat = "alluvium", 
+            lode.guidance = "frontback",
+            color = "darkgray") +
+  geom_stratum() +
+  theme(legend.position = "bottom") +
+  theme_minimal() +
+  # title("student curricula across several semesters") +
+  NULL
+```
+
+这张图同时还展示了 `NA` 的一种处理办法，还可以设置参数 `na.rm = TRUE`。缺失值的处理和 `strata` 变量是字符型还是因子或数值型的数据类型有关。
+
+长数据形式还允许在相邻轴之间进行合并，这对于查看数据在相邻的两个轴之间的变化很便利：
+
+```{r vaccinations, collapse=TRUE}
+data(vaccinations)
+head(vaccinations)
+levels(vaccinations$response) <- rev(levels(vaccinations$response))
+
+ggplot(vaccinations,
+       aes(x = survey, stratum = response, alluvium = subject,
+           y = freq,
+           fill = response, label = response)) +
+  scale_x_discrete(expand = c(.1, .1)) +
+  geom_flow() +
+  geom_stratum(alpha = .5) +
+  geom_text(stat = "stratum", size = 3) +
+  theme(legend.position = "none") +
+  ggtitle("vaccination survey responses at three points in time")
+```
+
+嗯，就这些。**ggalluvial** 能做 flow 图是一个优势。
