@@ -376,7 +376,7 @@ Multiple R-squared:  0.318,	Adjusted R-squared:  0.306
 F-statistic: 27.1 on 9 and 524 DF,  p-value: <2e-16
 ```
 
-现在 9 个变量里大部分都是显著的，而且 F 检验也显示没什么问题。我们在检查下 VIF：
+现在 9 个变量里大部分都是显著的，而且 F 检验也显示没什么问题。我们再检查下 VIF：
 
 ```r
 car::vif(fit2)
