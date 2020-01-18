@@ -1,0 +1,43 @@
+baseurl = "https://jiangjun.netlify.com/"
+languageCode = "zh-CN"
+title = "Jackie"
+theme = "hugo-ivy"
+googleAnalytics = ""
+disqusShortname = "jiangjun-netlify"
+ignoreFiles = ["\\.Rmd$", "_files$", "_cache$"]
+preserveTaxonomyNames = true
+footnotereturnlinkcontents = "↩"
+
+[permalinks]
+    post = "/post/:year/:month/:slug/"
+    note = "/note/:year/:month/:slug/"
+
+[[menu.main]]
+    name = "Home"
+    url = "/"
+    weight = 1
+[[menu.main]]
+    name = "About"
+    url = "/about/"
+    weight = 2
+[[menu.main]]
+    name = "Categories"
+    url = "/categories/"
+    weight = 3
+[[menu.main]]
+    name = "Tags"
+    url = "/tags/"
+    weight = 4
+
+[params]
+    description = "Jackie's Personal Blog."
+    footer = "[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-nc-sa/4.0/)&copy; Jackie 2018-2019 | [Github](https://github.com/JackieMium) | [Twitter](https://mobile.twitter.com/JackieMiem)"
+
+  highlightjsLang = ["r", "python", "julia",
+                     "yaml", "tex", "markdown", "toml",
+                     "postgres", "postgresql", "sql",
+                     "bash", "shell",
+                     "cmake", "c", "makefile"]
+  #highlightjsVersion = "9.12.0"
+  #highlightjsCDN = "//cdn.bootcss.com"
+  #highlightjsTheme = "github-gist"

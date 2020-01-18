@@ -19,30 +19,30 @@ output:
 
 <div id="TOC">
 <ul>
-<li><a>1. 介绍</a></li>
-<li><a href="#-expressionset-">2. 从头构建一个 <em>ExpressionSet</em> 数据</a><ul>
+<li><a href="#介绍">1. 介绍</a></li>
+<li><a href="#从头构建一个-expressionset-数据">2. 从头构建一个 <em>ExpressionSet</em> 数据</a><ul>
 <li><a href="#assay-data">Assay data</a></li>
 <li><a href="#phenotypic-data">Phenotypic data</a></li>
 <li><a href="#annotations-and-feature-data">Annotations and feature data</a></li>
 <li><a href="#experiment-description">Experiment description</a></li>
 <li><a href="#assembling-an-expressionset">Assembling an <em>ExpressionSet</em></a></li>
 </ul></li>
-<li><a href="#expressionset-">3. <em>ExpressionSet</em> 的一些基本特性</a><ul>
-<li><a href="#-expressionset-">查看 <em>ExpressionSet</em> 的各个元素</a></li>
-<li><a>取子集</a></li>
+<li><a href="#expressionset-的一些基本特性">3. <em>ExpressionSet</em> 的一些基本特性</a><ul>
+<li><a href="#查看-expressionset-的各个元素">查看 <em>ExpressionSet</em> 的各个元素</a></li>
+<li><a href="#取子集">取子集</a></li>
 </ul></li>
 </ul>
 </div>
 
 <p>本文翻译自 <a href="https://www.bioconductor.org/packages/release/bioc/vignettes/Biobase/inst/doc/ExpressionSetIntroduction.pdf">An Introduction to Bioconductor’s <em>ExpressionSet</em> Class</a> ，有删改。</p>
 <p>接触生物信息学和 Bioconductor 的话，ExpressionSet 数据类型是一个很基础的概念。之前我也是一直下了<a href="https://www.bioconductor.org/packages/release/bioc/html/Biobase.html">文档</a>但是没仔细看。</p>
-<div class="section level1">
+<div id="介绍" class="section level1">
 <h1>1. 介绍</h1>
 <p><em>ExpressionSet</em> 是 Biobase 包提供的。Biobase 本身是 Bioconductor 项目的一个部分，为很多基因组学数据提供数据类型支持。<em>ExpressionSet</em> 就是用来专门将多种不同来源的数据整合到一起方便数据处理的一种数据类型，很多 Bioconductor 函数输入输出的都是 <em>ExpressionSet</em> 类型的数据。</p>
 <p>简单的说，<em>ExpressionSet</em> 把表达数据（<code>assayData</code> 存储芯片、测序等表达数据），表型信息（<code>phenoData</code> 存储样本信息），注释等元信息（<code>featureData</code>, <code>annotation</code> 存储芯片或者测序技术的元数据），以及操作流程（<code>protocolData</code> 存储样本处理相关的信息，通常由厂家提供）和实验（<code>experimentData</code> 用来描述实验相关信息）几种密切相关数据封装在一起，这样我们处理数据的时候不用关心各个数据的细节把它们当作一个整体来看就好。</p>
 <p>下面来看怎么一步一步的构建一个 <em>ExpressionSet</em> 数据。</p>
 </div>
-<div id="-expressionset-" class="section level1">
+<div id="从头构建一个-expressionset-数据" class="section level1">
 <h1>2. 从头构建一个 <em>ExpressionSet</em> 数据</h1>
 <p>如果我们在 R 里用 affyPLM, affy, oligo 或者 limma 这些包读入了芯片的原始 CEL 数据的话，比如 affy 包的 <code>ReadAffy()</code>, <code>expresso()</code> 和 <code>justRMA()</code> 很可能读出来的数据已经就是 <em>ExpressionSet</em> 类型了。如果不是的话，我们可以用 convert 包的 <code>as</code> 来转换得到（<code>object</code> 是我们要转换的数据）：</p>
 <pre class="r"><code>library(&quot;convert&quot;)
@@ -63,16 +63,16 @@ class(exprs)
 dim(exprs)
 ## [1] 500  26
 colnames(exprs)
-##  [1] &quot;A&quot; &quot;B&quot; &quot;C&quot; &quot;D&quot; &quot;E&quot; &quot;F&quot; &quot;G&quot; &quot;H&quot; &quot;I&quot; &quot;J&quot; &quot;K&quot; &quot;L&quot; &quot;M&quot; &quot;N&quot; &quot;O&quot; &quot;P&quot; &quot;Q&quot;
-## [18] &quot;R&quot; &quot;S&quot; &quot;T&quot; &quot;U&quot; &quot;V&quot; &quot;W&quot; &quot;X&quot; &quot;Y&quot; &quot;Z&quot;
+##  [1] &quot;A&quot; &quot;B&quot; &quot;C&quot; &quot;D&quot; &quot;E&quot; &quot;F&quot; &quot;G&quot; &quot;H&quot; &quot;I&quot; &quot;J&quot; &quot;K&quot; &quot;L&quot; &quot;M&quot; &quot;N&quot; &quot;O&quot; &quot;P&quot; &quot;Q&quot; &quot;R&quot; &quot;S&quot;
+## [20] &quot;T&quot; &quot;U&quot; &quot;V&quot; &quot;W&quot; &quot;X&quot; &quot;Y&quot; &quot;Z&quot;
 head(exprs[, 1:5])
-##                      A       B      C      D      E
-## AFFX-MurIL2_at  192.74  85.753 176.76 135.57 64.494
-## AFFX-MurIL10_at  97.14 126.196  77.92  93.37 24.399
-## AFFX-MurIL4_at   45.82   8.831  33.06  28.71  5.945
-## AFFX-MurFAS_at   22.54   3.601  14.69  12.34 36.866
-## AFFX-BioB-5_at   96.79  30.438  46.13  70.93 56.174
-## AFFX-BioB-M_at   89.07  25.846  57.20  69.98 49.582</code></pre>
+##                        A         B        C        D        E
+## AFFX-MurIL2_at  192.7420  85.75330 176.7570 135.5750 64.49390
+## AFFX-MurIL10_at  97.1370 126.19600  77.9216  93.3713 24.39860
+## AFFX-MurIL4_at   45.8192   8.83135  33.0632  28.7072  5.94492
+## AFFX-MurFAS_at   22.5445   3.60093  14.6883  12.3397 36.86630
+## AFFX-BioB-5_at   96.7875  30.43800  46.1271  70.9319 56.17440
+## AFFX-BioB-M_at   89.0730  25.84610  57.2033  69.9766 49.58220</code></pre>
 <p>现在我们就可以用 <code>exprs</code> 构建一个初始的 <code>ExpressionSet</code> 数据了：</p>
 <pre class="r"><code>minimalSet &lt;- ExpressionSet(assayData = exprs)</code></pre>
 <p>但是要利用 <code>ExpressionSet</code> 数据类型丰富的特征，我们还要为这个数据添加表型、样本等数据，我们下面继续。</p>
@@ -88,8 +88,8 @@ pData &lt;- read.table(pDataFile,
 dim(pData)
 ## [1] 26  3
 rownames(pData)
-##  [1] &quot;A&quot; &quot;B&quot; &quot;C&quot; &quot;D&quot; &quot;E&quot; &quot;F&quot; &quot;G&quot; &quot;H&quot; &quot;I&quot; &quot;J&quot; &quot;K&quot; &quot;L&quot; &quot;M&quot; &quot;N&quot; &quot;O&quot; &quot;P&quot; &quot;Q&quot;
-## [18] &quot;R&quot; &quot;S&quot; &quot;T&quot; &quot;U&quot; &quot;V&quot; &quot;W&quot; &quot;X&quot; &quot;Y&quot; &quot;Z&quot;
+##  [1] &quot;A&quot; &quot;B&quot; &quot;C&quot; &quot;D&quot; &quot;E&quot; &quot;F&quot; &quot;G&quot; &quot;H&quot; &quot;I&quot; &quot;J&quot; &quot;K&quot; &quot;L&quot; &quot;M&quot; &quot;N&quot; &quot;O&quot; &quot;P&quot; &quot;Q&quot; &quot;R&quot; &quot;S&quot;
+## [20] &quot;T&quot; &quot;U&quot; &quot;V&quot; &quot;W&quot; &quot;X&quot; &quot;Y&quot; &quot;Z&quot;
 head(pData)
 ##   gender    type score
 ## A Female Control  0.75
@@ -99,13 +99,13 @@ head(pData)
 ## E Female    Case  0.93
 ## F   Male Control  0.22
 summary(pData)
-##     gender              type               score      
-##  Length:26          Length:26          Min.   :0.100  
-##  Class :character   Class :character   1st Qu.:0.328  
-##  Mode  :character   Mode  :character   Median :0.415  
-##                                        Mean   :0.537  
-##                                        3rd Qu.:0.765  
-##                                        Max.   :0.980</code></pre>
+##     gender              type               score       
+##  Length:26          Length:26          Min.   :0.1000  
+##  Class :character   Class :character   1st Qu.:0.3275  
+##  Mode  :character   Mode  :character   Median :0.4150  
+##                                        Mean   :0.5369  
+##                                        3rd Qu.:0.7650  
+##                                        Max.   :0.9800</code></pre>
 <p>示例数据有 26 行 3 列，这个 26 行刚好和前面的表达数据 <code>exprs</code> 的 26 列是一样的。如果我们看一下行列名的话，会发现行列名连顺序都一模一样：</p>
 <pre class="r"><code>all(rownames(pData) == colnames(exprs))
 ## [1] TRUE</code></pre>
@@ -180,9 +180,9 @@ pData(phenoData[phenoData$score&gt;0.8,])
 <p><em>exampleSet</em> 和 前面的 <em>minimalSet</em> 都是 <em>ExpressionSet</em> 对象，但是前者包含了远比后者更丰富的信息。</p>
 </div>
 </div>
-<div id="expressionset-" class="section level1">
+<div id="expressionset-的一些基本特性" class="section level1">
 <h1>3. <em>ExpressionSet</em> 的一些基本特性</h1>
-<p>从头构建了一个 <em>ExpressionSet</em> 数据后，我们现在来看看这个数据的一些特征。<code>help(&quot;ExpressionSet-class&quot;)</code> 有一个简单地介绍随时可以查看。</p>
+<p>从头构建了一个 <em>ExpressionSet</em> 数据后，我们现在来看看这个数据的一些特征。<code>help("ExpressionSet-class")</code> 有一个简单地介绍随时可以查看。</p>
 <p>如果我们单纯打印一下 <em>ExpressionSet</em> 数据的话，内容可能很长，所以默认行为只会打印出简单地概要信息：</p>
 <pre class="r"><code>exampleSet
 ## ExpressionSet (storageMode: lockedEnvironment)
@@ -196,7 +196,7 @@ pData(phenoData[phenoData$score&gt;0.8,])
 ## featureData: none
 ## experimentData: use &#39;experimentData(object)&#39;
 ## Annotation: hgu95av2</code></pre>
-<div id="-expressionset-" class="section level2">
+<div id="查看-expressionset-的各个元素" class="section level2">
 <h2>查看 <em>ExpressionSet</em> 的各个元素</h2>
 <p>首先，直接用 <code>$</code> 就能查看 <em>ExpressionSet</em> 里的 <code>phenoData</code>（<em>AnnotatedDataFrame</em> 对象）：</p>
 <pre class="r"><code>exampleSet$gender[1:5]
@@ -216,7 +216,7 @@ varLabels(exampleSet)
 dim(mat)
 ## [1] 500  26</code></pre>
 </div>
-<div class="section level2">
+<div id="取子集" class="section level2">
 <h2>取子集</h2>
 <p>对 <em>ExpressionSet</em> 数据取子集可能是最常见的操作了。取子基的操作和针对一个表达矩阵取子集类似，行参数针对 feature 而列参数针对 sample。比如我们对上面的数据取子集得到一个新的只有 5 个探针和 3 个样本的新的 <em>ExpressionSet</em> 数据：</p>
 <pre class="r"><code>vv &lt;- exampleSet[1:5, 1:3]

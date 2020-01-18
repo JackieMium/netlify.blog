@@ -20,25 +20,25 @@ output:
 
 <div id="TOC">
 <ul>
-<li><a>有序和无序因子变量</a></li>
-<li><a>例子</a></li>
-<li><a>解读</a></li>
-<li><a>模型评价和比较</a></li>
-<li><a>结语</a></li>
+<li><a href="#有序和无序因子变量">有序和无序因子变量</a></li>
+<li><a href="#例子">例子</a></li>
+<li><a href="#解读">解读</a></li>
+<li><a href="#模型评价和比较">模型评价和比较</a></li>
+<li><a href="#结语">结语</a></li>
 </ul>
 </div>
 
 <p>今天涉及到的这个就很有意思了。很早开始我就对这个问题有点疑惑，但是一直没有抽出时间（好吧，其实主要还是我太懒）好好了解一下。前阵碰到数据做回归就觉得到了不得不查一下这个问题的时候了才稍微查了一下。</p>
 <p>事先声明，其实这个问题我到现在都懂的不是很多，里面涉及一些统计方面的东西没有找到很好的资料，所以这篇博文主要注重实用，也可能还会有错误，我写出来权当是自己做一下记录，请自行决定参考。</p>
 <p>本文部分参考：<a href="http://uc-r.github.io/logistic_regression">UC Business Analytics R Programming Guide: Logistic Regression</a></p>
-<div class="section level1">
+<div id="有序和无序因子变量" class="section level1">
 <h1>有序和无序因子变量</h1>
 <p>事实上以前，我对这个问题没什么疑问(大概是无知者无畏吧😂)。首先分类变量（categorical variables）一般我们都会用字符型（character）来存储，比如简单的 male/female、single/married/widowed 等，这个太直观了根本不需要解释和思考。就算有时候我们会把它们用数字表示，比如性别是 0/1、婚否是 0/1 这样的二分类变量我们甚至可以一样存储为 character 嘛。</p>
 <p>但是，有时候有的分类变量看起来 “好像是有序” 的我就会有点犯嘀咕了。比如肿瘤的分期 Ⅰ/Ⅱ/Ⅲ/Ⅳ 、尿蛋白 +/++/+++ 这样的变量。这些变量好像本身是有顺序的，而且不遵循这个本身自由顺序好像也不大合适。我以前就是这么以为的。</p>
 <p>直到有次我真的在做回归的时候理所当然的把一些变量设置成 ordered factor 的时候，发现结果会出现一些怪怪的我不知道是什么东西，才意识到这个东西并非这么简单。</p>
 <p>下面用例子具体来说明情况。</p>
 </div>
-<div class="section level1">
+<div id="例子" class="section level1">
 <h1>例子</h1>
 <p>生成 Logistic 回归模拟数据：</p>
 <ul>
@@ -162,7 +162,7 @@ summary(fit.unord)
 ## 
 ## Number of Fisher Scoring iterations: 7</code></pre>
 </div>
-<div class="section level1">
+<div id="解读" class="section level1">
 <h1>解读</h1>
 <p>首先我们看到两个模型的 x1/x2 都是显著的且 p 值完全相同，模型 AIC、残差完全相同。但是很奇怪的就是在 <code>fit.ord</code> 里面关于 x3 的结果有 x3.L/x3.Q/x3.C/x3^4 这么几个奇奇怪怪的变量，而 <code>fit.unord</code> 就比较让人好理解只有 x4b ~ x4e，表示它们将 x4 = <code>a</code> 作为基准的结果。</p>
 <p>查询了一下我知道 L/Q/C 分别代表 Linear/Quadratic/Cubic，即线性（1 次方）、平方和立方，所以最后一个才会写 x3^4 即 4 次方。这个是多项式（Polynormial）模型，即把 x3 从 1～4 次方（x3 一共是 5 个水平）都纳入模型。至于是一起纳入模型还是逐个，我还没搞清楚。</p>
@@ -171,12 +171,12 @@ summary(fit.unord)
 ##         unordered           ordered 
 ## &quot;contr.treatment&quot;      &quot;contr.poly&quot;
 contrasts(dat$x3) # ord
-##              .L         .Q            .C         ^4
-## [1,] -0.6324555  0.5345225 -3.162278e-01  0.1195229
-## [2,] -0.3162278 -0.2672612  6.324555e-01 -0.4780914
-## [3,]  0.0000000 -0.5345225 -4.095972e-16  0.7171372
-## [4,]  0.3162278 -0.2672612 -6.324555e-01 -0.4780914
-## [5,]  0.6324555  0.5345225  3.162278e-01  0.1195229
+##                 .L         .Q            .C         ^4
+## [1,] -6.324555e-01  0.5345225 -3.162278e-01  0.1195229
+## [2,] -3.162278e-01 -0.2672612  6.324555e-01 -0.4780914
+## [3,] -1.481950e-18 -0.5345225  1.786843e-17  0.7171372
+## [4,]  3.162278e-01 -0.2672612 -6.324555e-01 -0.4780914
+## [5,]  6.324555e-01  0.5345225  3.162278e-01  0.1195229
 contrasts(dat$x4)  # un-ord
 ##   b c d e
 ## a 0 0 0 0
@@ -272,7 +272,7 @@ summary(fit.unord2)
 <li><a href="https://freakonometrics.hypotheses.org/9109">REGRESSION ON VARIABLES, OR ON CATEGORIES?</a></li>
 </ul>
 </div>
-<div class="section level1">
+<div id="模型评价和比较" class="section level1">
 <h1>模型评价和比较</h1>
 <p>下面再来看模型比较。</p>
 <p>有时候我们纳入非常多的变量，然后做一个回归发现很多变量都并不显著，这时候就会涉及到变量筛选。常见的做法是根据 AIC/BIC 做 stepwise 筛选。这里就不介绍各种方法及其优劣了，这个是另一个话题。</p>
@@ -363,7 +363,7 @@ anova(fit.ord, fit.ord.reduced, test = &#39;Chisq&#39;)
 ##                  0.1963707</code></pre>
 <p>McFadden’s Pseudo <span class="math inline">\(R^2\)</span> 通常不会很大，0.2 ～ 0.4 之间已经表示模型具有很好的拟合度了。</p>
 </div>
-<div class="section level1">
+<div id="结语" class="section level1">
 <h1>结语</h1>
 <p>这篇就写这么多吧。其实这一篇主要是将目前的一点疑惑写下来以待解决。暂时的方法还是在做因子型数据的时候，先选择以无序纳入分析，或者改变比较矩阵参数。</p>
 <p>本篇代码脚本：<a href="https://jiangjun.netlify.com/code/2019-03-05-r-ordered-unordered-factors_files/ordered.unordered.factors.R">ordered.unordered.factors.R</a>。</p>

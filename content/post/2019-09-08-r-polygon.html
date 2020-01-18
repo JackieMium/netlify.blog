@@ -19,15 +19,15 @@ output:
 
 <div id="TOC">
 <ul>
-<li><a href="#polygon-">polygon 作图基本语法</a></li>
-<li><a href="#section">文档示例</a></li>
+<li><a href="#polygon-作图基本语法">polygon 作图基本语法</a></li>
+<li><a href="#文档示例">文档示例</a></li>
 </ul>
 </div>
 
 <p>首先隆重推荐一下一本新书：<a href="https://msg-book.netlify.com/">现代统计图形</a> 。这是谢益辉老师多年前写的书，最近在统计之都论坛一些人的协助之下转移到 <strong>bookdown </strong> 平台，具体可以看 <a href="https://d.cosx.org/d/420857-r">诚邀广大R语言、数据可视化爱好者和我们一起搬迁升级谢益辉著作《现代统计图形》</a> 和 GitHub 的仓库 <a href="https://github.com/XiangyunHuang/MSG-Book">XiangyunHuang/MSG-Book</a>。我花两三天走马观花的浏览了一遍，有种我以前是不是学了个假的 R 的感觉。也感觉到以前可能是有点中了 <strong>tidyverse</strong> 和 <strong>ggplot2</strong> 的毒，以至于很多 base R 里的东西我其实都没太掌握。做了一些记录，把很希望继续了解的东西都记下来了，想有空就学一点，同时这本书也还要仔细看。</p>
 <p>今天主要是做一个 Logistic 回归的时候做 ROC 曲线想把可信区间一起画上去，手头已经有了数据，发现没有现成的函数可以直接画。想了一想之前看到 MSG 里类似例子可以用多边形画出随意的形状，所以就看了一下果然的到了我想要的图。</p>
 <p>R 画多边形，主要是 <code>polygon()</code> 函数。</p>
-<div id="polygon-" class="section level2">
+<div id="polygon-作图基本语法" class="section level2">
 <h2>polygon 作图基本语法</h2>
 <p><code>polygon()</code> 组图非常简单，直接提供 x/y 它就根据这一系列坐标为边界围成一个多边形。先直接看例子：</p>
 <pre class="r"><code>set.seed(1234)
@@ -75,7 +75,7 @@ polygon(x, y, lwd = 3,
 <p>这样画出来的多边形和我们拿笔在纸上从第一个点一口气连接到最后一个点画一个多边形其实是一个意思。</p>
 <p>下面看看文档里的几个例子也挺有意思。</p>
 </div>
-<div id="section" class="section level2">
+<div id="文档示例" class="section level2">
 <h2>文档示例</h2>
 <pre class="r"><code>x &lt;- c(1:9, 8:1)
 y &lt;- c(1, 2*(5:3), 2, -1, 17, 9, 8, 2:9)
