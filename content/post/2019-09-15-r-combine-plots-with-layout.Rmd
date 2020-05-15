@@ -1,5 +1,5 @@
 ---
-title: 用 layout 进行图形组合
+title: 用 layout() 进行图形组合
 author: Jackie
 date: '2019-09-15'
 slug: r-combine-plots-with-layout
@@ -18,7 +18,7 @@ output:
 
 这个内容是看完 [MSG](https://github.com/XiangyunHuang/MSG-Book) 之后的补课。
 
-图形组合其实以往用过很多种了，base R 里的 `par(mfrow = c(), mfcol = c())`， **ggplot2** 里的 `facet_grid()` 和 `facet_wrap()` ，还要非常好用的 **cowplot** 的 `plot_grid()`。但是前者自定义性差，只能做很简单任务；后者则是 **ggplot2** 系统，并且是将同一个数据的作图根据指定变量来分割。而 `layout()` 则兼具了语法简介和作图灵活的特点。**cowplot** 很不错，我们后面介绍⚑。
+图形组合其实以往用过很多种了，base R 里的 `par(mfrow = c(), mfcol = c())`， **ggplot2** 里的 `facet_grid()` 和 `facet_wrap()` ，还有非常好用的 **cowplot** 的 `plot_grid()`。但是前者自定义性差，只能做很简单任务；后者则是 **ggplot2** 系统，并且是将同一个数据的作图根据指定变量来分割。而 `layout()` 则兼具了语法简洁和作图灵活的特点。**cowplot** 很不错，我们后面介绍⚑。
 
 **注意**，文档里提醒：
 

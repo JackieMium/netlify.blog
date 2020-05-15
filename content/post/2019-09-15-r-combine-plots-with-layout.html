@@ -1,5 +1,5 @@
 ---
-title: 用 layout 进行图形组合
+title: 用 layout() 进行图形组合
 author: Jackie
 date: '2019-09-15'
 slug: r-combine-plots-with-layout
@@ -18,7 +18,7 @@ output:
 
 
 <p>这个内容是看完 <a href="https://github.com/XiangyunHuang/MSG-Book">MSG</a> 之后的补课。</p>
-<p>图形组合其实以往用过很多种了，base R 里的 <code>par(mfrow = c(), mfcol = c())</code>， <strong>ggplot2</strong> 里的 <code>facet_grid()</code> 和 <code>facet_wrap()</code> ，还要非常好用的 <strong>cowplot</strong> 的 <code>plot_grid()</code>。但是前者自定义性差，只能做很简单任务；后者则是 <strong>ggplot2</strong> 系统，并且是将同一个数据的作图根据指定变量来分割。而 <code>layout()</code> 则兼具了语法简介和作图灵活的特点。<strong>cowplot</strong> 很不错，我们后面介绍⚑。</p>
+<p>图形组合其实以往用过很多种了，base R 里的 <code>par(mfrow = c(), mfcol = c())</code>， <strong>ggplot2</strong> 里的 <code>facet_grid()</code> 和 <code>facet_wrap()</code> ，还有非常好用的 <strong>cowplot</strong> 的 <code>plot_grid()</code>。但是前者自定义性差，只能做很简单任务；后者则是 <strong>ggplot2</strong> 系统，并且是将同一个数据的作图根据指定变量来分割。而 <code>layout()</code> 则兼具了语法简洁和作图灵活的特点。<strong>cowplot</strong> 很不错，我们后面介绍⚑。</p>
 <p><strong>注意</strong>，文档里提醒：</p>
 <blockquote>
 <p>These functions are totally incompatible with the other mechanisms for arranging plots on a device: ‘par(mfrow)’, ‘par(mfcol)’ and ‘split.screen’.</p>
