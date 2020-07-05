@@ -39,3 +39,6 @@ rsconnect/
 public
 static/figures
 blogdown
+
+# hugo cache
+resources
