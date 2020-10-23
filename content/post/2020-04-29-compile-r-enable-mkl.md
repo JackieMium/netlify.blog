@@ -336,6 +336,178 @@ Sys.getenv("LD_LIBRARY_PATH")  # R 自己也可以检查环境变量
 R 在运行时会把自己的库文件夹加入 `LD_LIBRARY_PATH` 环境变量，这样就能找到正确的库文件了。完结撒花！
 
 
+## 更新
+
+----
+
+20200729 更新：发现这个问题似乎最好的解决方案是干脆 Miniconda/Anaconda 专门建个 R 环境？ conda 安装的 R 也是可以用 MKL 的。参考 [StackOverflow: Conda install r-essentials with MKL](https://stackoverflow.com/q/58834940)
+
+
+```
+conda create -n R-mkl -c conda-forge r-essentials libblas=3.8.0=9_mkl
+
+```
+
+这里 `-c conda-forge` 指定安装源和 `libblas=3.8.0=9_mkl` 指定版本都要视 `conda search` 搜索结果而定。
+安装完之后可以 `sessionInfo()` 等等检查一下，可以发现 conda 环境的 R 确实调用了环境内的 MKL 库。
+
+
+----
+
+20201017 更新：conda 也不是很好的解决方案，添加几个频道/源以后，经常在 conda update 的时候出现各种冲突，以及最近它开始提示根据依赖需要卸载 intel-mkl....同时最近又在[R-Bloggers看到一个似乎更好的教程: Why is R slow? some explanations and MKL/OpenBLAS setup to try to fix this](https://www.r-bloggers.com/2017/11/why-is-r-slow-some-explanations-and-mklopenblas-setup-to-try-to-fix-this/)。原文似乎在作者迁移之后有做过改动 [Compiling R with multi-threaded linear algebra libraries on Ubuntu](https://pacha.dev/blog/2018/04/21/compiling-r-with-multi-threaded-linear-algebra-libraries-on-ubuntu/)，但是重要步骤没有改变。相比我之前写的最重要的时是 `configure` 后面有其他参数：
+
+```
+BLAS="-L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_gf_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl"
+./configure --prefix=/opt/R/3.4.2-mkl --enable-shared --enable-R-shlib --with-blas="$BLAS" --with-lapack
+```
+
+这些参数都可以通过 Intel 提供的工具获得：[Intel® Math Kernel Library Link Line Advisor](https://software.intel.com/content/www/us/en/develop/articles/intel-mkl-link-line-advisor.html)
+
+编译 openblas 支持的时候用：
+
+```
+./configure --prefix=/opt/R/R-3.4.2-openblas --enable-R-shlib --with-blas --with-lapack
+```
+
+我尝试用最新的 R-4.0.3（20201017）编译了 R-mkl、R-openblas 和 R-vanilla 并用上面博文里给出的脚本做了很简单的测试。下面是测试结果：
+
+```
+---------------
+openblas
+---------------
+   R Benchmark 2.5
+   ===============
+Number of times each test is run__________________________:  3
+
+   I. Matrix calculation
+   ---------------------
+Creation, transp., deformation of a 2500x2500 matrix (sec):  0.725666666666667 
+2400x2400 normal distributed random matrix ^1000____ (sec):  0.236666666666667 
+Sorting of 7,000,000 random values__________________ (sec):  0.807333333333335 
+2800x2800 cross-product matrix (b = a' * a)_________ (sec):  0.280333333333334 
+Linear regr. over a 3000x3000 matrix (c = a \ b')___ (sec):  0.171999999999999 
+                      --------------------------------------------
+                 Trimmed geom. mean (2 extremes eliminated):  0.363789089436169 
+
+   II. Matrix functions
+   --------------------
+FFT over 2,400,000 random values____________________ (sec):  0.275333333333333 
+Eigenvalues of a 640x640 random matrix______________ (sec):  0.376333333333335 
+Determinant of a 2500x2500 random matrix____________ (sec):  0.152666666666666 
+Cholesky decomposition of a 3000x3000 matrix________ (sec):  0.151666666666668 
+Inverse of a 1600x1600 random matrix________________ (sec):  0.226999999999999 
+                      --------------------------------------------
+                Trimmed geom. mean (2 extremes eliminated):  0.212101117986884 
+
+   III. Programmation
+   ------------------
+3,500,000 Fibonacci numbers calculation (vector calc)(sec):  0.202666666666668 
+Creation of a 3000x3000 Hilbert matrix (matrix calc) (sec):  0.242999999999995 
+Grand common divisors of 400,000 pairs (recursion)__ (sec):  0.197000000000003 
+Creation of a 500x500 Toeplitz matrix (loops)_______ (sec):  0.0470000000000065 
+Escoufier's method on a 45x45 matrix (mixed)________ (sec):  0.239000000000004 
+                      --------------------------------------------
+                Trimmed geom. mean (2 extremes eliminated):  0.212103979687712 
+
+
+Total time for all 15 tests_________________________ (sec):  4.33366666666668 
+Overall mean (sum of I, II and III trimmed means/3)_ (sec):  0.253890907681938 
+                      --- End of test ---
+                      
+                      
+                      
+                      
+-----------------------
+MKL
+-----------------------
+   R Benchmark 2.5
+   ===============
+Number of times each test is run__________________________:  3
+
+   I. Matrix calculation
+   ---------------------
+Creation, transp., deformation of a 2500x2500 matrix (sec):  0.705 
+2400x2400 normal distributed random matrix ^1000____ (sec):  0.252666666666666 
+Sorting of 7,000,000 random values__________________ (sec):  0.787 
+2800x2800 cross-product matrix (b = a' * a)_________ (sec):  0.225333333333334 
+Linear regr. over a 3000x3000 matrix (c = a \ b')___ (sec):  0.126666666666668 
+                      --------------------------------------------
+                 Trimmed geom. mean (2 extremes eliminated):  0.342389814248971 
+
+   II. Matrix functions
+   --------------------
+FFT over 2,400,000 random values____________________ (sec):  0.285666666666666 
+Eigenvalues of a 640x640 random matrix______________ (sec):  0.305 
+Determinant of a 2500x2500 random matrix____________ (sec):  0.160999999999999 
+Cholesky decomposition of a 3000x3000 matrix________ (sec):  0.154333333333334 
+Inverse of a 1600x1600 random matrix________________ (sec):  0.161999999999999 
+                      --------------------------------------------
+                Trimmed geom. mean (2 extremes eliminated):  0.195314050159429 
+
+   III. Programmation
+   ------------------
+3,500,000 Fibonacci numbers calculation (vector calc)(sec):  0.203999999999998 
+Creation of a 3000x3000 Hilbert matrix (matrix calc) (sec):  0.25366666666667 
+Grand common divisors of 400,000 pairs (recursion)__ (sec):  0.215333333333334 
+Creation of a 500x500 Toeplitz matrix (loops)_______ (sec):  0.0473333333333343 
+Escoufier's method on a 45x45 matrix (mixed)________ (sec):  0.244 
+                      --------------------------------------------
+                Trimmed geom. mean (2 extremes eliminated):  0.220484003275243 
+
+
+Total time for all 15 tests_________________________ (sec):  4.129 
+Overall mean (sum of I, II and III trimmed means/3)_ (sec):  0.245213176176043 
+                      --- End of test ---
+                      
+                      
+                      
+                      
+--------------------
+R vanilla
+--------------------
+R Benchmark 2.5
+   ===============
+Number of times each test is run__________________________:  3
+
+   I. Matrix calculation
+   ---------------------
+Creation, transp., deformation of a 2500x2500 matrix (sec):  0.781333333333333 
+2400x2400 normal distributed random matrix ^1000____ (sec):  0.265000000000002 
+Sorting of 7,000,000 random values__________________ (sec):  0.857666666666668 
+2800x2800 cross-product matrix (b = a' * a)_________ (sec):  16.3386666666667 
+Linear regr. over a 3000x3000 matrix (c = a \ b')___ (sec):  7.666 
+                      --------------------------------------------
+                 Trimmed geom. mean (2 extremes eliminated):  1.72547193437761 
+
+   II. Matrix functions
+   --------------------
+FFT over 2,400,000 random values____________________ (sec):  0.319666666666668 
+Eigenvalues of a 640x640 random matrix______________ (sec):  0.817999999999998 
+Determinant of a 2500x2500 random matrix____________ (sec):  3.82566666666667 
+Cholesky decomposition of a 3000x3000 matrix________ (sec):  6.17299999999998 
+Inverse of a 1600x1600 random matrix________________ (sec):  3.492 
+                      --------------------------------------------
+                Trimmed geom. mean (2 extremes eliminated):  2.21910689016012 
+
+   III. Programmation
+   ------------------
+3,500,000 Fibonacci numbers calculation (vector calc)(sec):  0.213999999999999 
+Creation of a 3000x3000 Hilbert matrix (matrix calc) (sec):  0.276000000000001 
+Grand common divisors of 400,000 pairs (recursion)__ (sec):  0.213666666666673 
+Creation of a 500x500 Toeplitz matrix (loops)_______ (sec):  0.0476666666666669 
+Escoufier's method on a 45x45 matrix (mixed)________ (sec):  0.319000000000017 
+                      --------------------------------------------
+                Trimmed geom. mean (2 extremes eliminated):  0.232819781190536 
+
+
+Total time for all 15 tests_________________________ (sec):  41.6073333333333 
+Overall mean (sum of I, II and III trimmed means/3)_ (sec):  0.962428923249875 
+                      --- End of test ---
+```
+
+可以看到 MKL 和 OpenBLAS 加速效果明显而且不相上下。
+
+
 - [RStudio Community: Compiling R from source in /opt/R](https://community.rstudio.com/t/compiling-r-from-source-in-opt-r/14666/14)
 - [RStudio Support: Building R from source](https://support.rstudio.com/hc/en-us/articles/218004217-Building-R-from-source)
 - [R Documents: R-admin](https://cran.r-project.org/doc/manuals/r-release/R-admin.html#Installing-R-under-Unix_002dalikes)
