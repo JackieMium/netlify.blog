@@ -336,11 +336,8 @@ Sys.getenv("LD_LIBRARY_PATH")  # R 自己也可以检查环境变量
 R 在运行时会把自己的库文件夹加入 `LD_LIBRARY_PATH` 环境变量，这样就能找到正确的库文件了。完结撒花！
 
 
-<<<<<<< HEAD
 ## 更新
 
-=======
->>>>>>> c4a409259a36d5b6419641ff6c424d5c14a26520
 ----
 
 20200729 更新：发现这个问题似乎最好的解决方案是干脆 Miniconda/Anaconda 专门建个 R 环境？ conda 安装的 R 也是可以用 MKL 的。参考 [StackOverflow: Conda install r-essentials with MKL](https://stackoverflow.com/q/58834940)
@@ -355,7 +352,6 @@ conda create -n R-mkl -c conda-forge r-essentials libblas=3.8.0=9_mkl
 安装完之后可以 `sessionInfo()` 等等检查一下，可以发现 conda 环境的 R 确实调用了环境内的 MKL 库。
 
 
-<<<<<<< HEAD
 ----
 
 20201017 更新：conda 也不是很好的解决方案，添加几个频道/源以后，经常在 conda update 的时候出现各种冲突，以及最近它开始提示根据依赖需要卸载 intel-mkl....同时最近又在[R-Bloggers看到一个似乎更好的教程: Why is R slow? some explanations and MKL/OpenBLAS setup to try to fix this](https://www.r-bloggers.com/2017/11/why-is-r-slow-some-explanations-and-mklopenblas-setup-to-try-to-fix-this/)。原文似乎在作者迁移之后有做过改动 [Compiling R with multi-threaded linear algebra libraries on Ubuntu](https://pacha.dev/blog/2018/04/21/compiling-r-with-multi-threaded-linear-algebra-libraries-on-ubuntu/)，但是重要步骤没有改变。相比我之前写的最重要的时是 `configure` 后面有其他参数：
@@ -376,10 +372,12 @@ BLAS="-L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_gf_lp64 -lmkl_gnu_thread
 我尝试用最新的 R-4.0.3（20201017）编译了 R-mkl、R-openblas 和 R-vanilla 并用上面博文里给出的脚本做了很简单的测试。下面是测试结果：
 
 ```
+
 ---------------
 openblas
 ---------------
-   R Benchmark 2.5
+
+R Benchmark 2.5
    ===============
 Number of times each test is run__________________________:  3
 
@@ -424,7 +422,8 @@ Overall mean (sum of I, II and III trimmed means/3)_ (sec):  0.253890907681938
 -----------------------
 MKL
 -----------------------
-   R Benchmark 2.5
+
+R Benchmark 2.5
    ===============
 Number of times each test is run__________________________:  3
 
@@ -469,6 +468,7 @@ Overall mean (sum of I, II and III trimmed means/3)_ (sec):  0.245213176176043
 --------------------
 R vanilla
 --------------------
+
 R Benchmark 2.5
    ===============
 Number of times each test is run__________________________:  3
@@ -512,8 +512,7 @@ Overall mean (sum of I, II and III trimmed means/3)_ (sec):  0.962428923249875
 可以看到 MKL 和 OpenBLAS 加速效果明显而且不相上下。
 
 
-=======
->>>>>>> c4a409259a36d5b6419641ff6c424d5c14a26520
+
 - [RStudio Community: Compiling R from source in /opt/R](https://community.rstudio.com/t/compiling-r-from-source-in-opt-r/14666/14)
 - [RStudio Support: Building R from source](https://support.rstudio.com/hc/en-us/articles/218004217-Building-R-from-source)
 - [R Documents: R-admin](https://cran.r-project.org/doc/manuals/r-release/R-admin.html#Installing-R-under-Unix_002dalikes)
