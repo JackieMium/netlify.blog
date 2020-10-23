@@ -336,6 +336,20 @@ Sys.getenv("LD_LIBRARY_PATH")  # R 自己也可以检查环境变量
 R 在运行时会把自己的库文件夹加入 `LD_LIBRARY_PATH` 环境变量，这样就能找到正确的库文件了。完结撒花！
 
 
+----
+
+20200729 更新：发现这个问题似乎最好的解决方案是干脆 Miniconda/Anaconda 专门建个 R 环境？ conda 安装的 R 也是可以用 MKL 的。参考 [StackOverflow: Conda install r-essentials with MKL](https://stackoverflow.com/q/58834940)
+
+
+```
+conda create -n R-mkl -c conda-forge r-essentials libblas=3.8.0=9_mkl
+
+```
+
+这里 `-c conda-forge` 指定安装源和 `libblas=3.8.0=9_mkl` 指定版本都要视 `conda search` 搜索结果而定。
+安装完之后可以 `sessionInfo()` 等等检查一下，可以发现 conda 环境的 R 确实调用了环境内的 MKL 库。
+
+
 - [RStudio Community: Compiling R from source in /opt/R](https://community.rstudio.com/t/compiling-r-from-source-in-opt-r/14666/14)
 - [RStudio Support: Building R from source](https://support.rstudio.com/hc/en-us/articles/218004217-Building-R-from-source)
 - [R Documents: R-admin](https://cran.r-project.org/doc/manuals/r-release/R-admin.html#Installing-R-under-Unix_002dalikes)
