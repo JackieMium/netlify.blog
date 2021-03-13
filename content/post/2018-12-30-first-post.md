@@ -70,7 +70,15 @@ plot(gg)
 
 永远都没想到会有那么一天，我要在这里测试数学公式渲染...
 
-我们假设 `$Y = \beta_0 + \beta_1x$` 并且 `$E = mc^2$`.... 不行，说到我要睡觉，来个简单的正态分布：
+我们假设 $Y = \beta_0 + \beta_1x_1$ 并且 $E = mc^2$.... 不行，说到我要睡觉，来个简单的正态分布 $\mathcal{N}(\mu, \sigma^2 )$ ：
+
+$$
+\begin{equation}
+f(x) = \frac{e^{-(x - \mu)^{2}/(2\sigma^{2}) }} {\sigma\sqrt{2\pi}}
+\end{equation}
+$$
+
+和贝叶斯公式：
 
 $$
 \begin{equation}
@@ -79,6 +87,7 @@ P(A \mid B) = \frac{P(B \mid A) \, P(A)}{P(B)}
 $$
 
 以及 Exponential function (What?):
+
 $$
 \begin{equation}
 e^x = \lim_{n \to \infty} \left( 1+ \frac{x}{n} \right)^n
