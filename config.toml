@@ -1,7 +1,7 @@
 baseURL = "http://localhost:1313/"
 languageCode = "zh-cn"
 defaultContentLanguage = "zh-cn"                             # en / zh-cn / ... (This field determines which i18n file to use)
-title = "Jackie's Persnal Blog"
+title = "Jackie's Personal Blog"
 preserveTaxonomyNames = true
 enableRobotsTXT = true
 enableEmoji = false
