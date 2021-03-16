@@ -1,0 +1,706 @@
+---
+title: 复习下 Logistic 回归基础
+author: Jackie
+date: '2020-08-03'
+slug: logistic-basics
+categories:
+  - Stats
+tags:
+  - 基础
+  - R
+  - stats
+toc: yes
+comment: yes
+lastmod: '2020-08-03T21:08:33+08:00'
+autoCollapseToc: yes
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+
+</div>
+
+<p>这一篇算是复习了，日渐觉得对于 Logsitic 回归了解得有点飘。这一篇就是找几个比较基础的东西看一下然后把 Logistic 回归从前到后过一遍。涉及到模型构建、模型拟合优度（Goodness of fit）、区分度（Discrimination）和校准度（Calibration）评价。</p>
+<!--more-->
+<p>整体参考了 <a href="https://mgimond.github.io/Stats-in-R/Logistic.html">Manny Gimond 的 一篇博文：Logistic regression</a>。</p>
+<p>数据使用的是 <strong>mlbench</strong> 包里的 <code>PimaIndiansDiabetes2</code>。这是一个根据患者年龄、BMI、怀孕次数、OGTT 后胰岛素水平和 OGTT（口服糖耐量试验）血糖结果等等变量预测糖尿病（二分类，Neg vs. Pos）的数据，正好可以作为 Logistic 回归的例子。具体介绍可以参看 Kaggle <a href="https://www.kaggle.com/uciml/pima-indians-diabetes-database">Pima Indians Diabetes Database: Predict the onset of diabetes based on diagnostic measures</a></p>
+<p>用到的包不多，主要就是数据清洗和可视化，<strong>rms</strong> 希望有机会（又挖坑了嘿）可以深入学习一下，这里只是简单用一下。</p>
+<pre class="r"><code>library(&quot;dplyr&quot;)
+library(&quot;ggplot2&quot;)
+library(&quot;ggbeeswarm&quot;)
+library(&quot;beeswarm&quot;)
+library(&quot;rms&quot;)
+library(&quot;pscl&quot;) # McFadden R2
+
+set.seed(1234)
+
+theme_set(theme_minimal())</code></pre>
+<div id="数据" class="section level1">
+<h1>数据</h1>
+<p>载入数据之后发现数据里有缺失值，这里图方便直接就不要含缺失值的数据了。然后把 BMI 从连续型变量切分成因子类，由于低体重组人数太少（只有一个）直接合并到正常体重组了。</p>
+<pre class="r"><code>data(&quot;PimaIndiansDiabetes2&quot;, package=&quot;mlbench&quot;)
+head(PimaIndiansDiabetes2)
+##   pregnant glucose pressure triceps insulin mass pedigree age diabetes
+## 1        6     148       72      35      NA 33.6    0.627  50      pos
+## 2        1      85       66      29      NA 26.6    0.351  31      neg
+## 3        8     183       64      NA      NA 23.3    0.672  32      pos
+## 4        1      89       66      23      94 28.1    0.167  21      neg
+## 5        0     137       40      35     168 43.1    2.288  33      pos
+## 6        5     116       74      NA      NA 25.6    0.201  30      neg
+
+dim(PimaIndiansDiabetes2)
+## [1] 768   9
+
+
+sapply(PimaIndiansDiabetes2, function(x) sum(is.na(x)))
+## pregnant  glucose pressure  triceps  insulin     mass pedigree      age 
+##        0        5       35      227      374       11        0        0 
+## diabetes 
+##        0
+
+dbt &lt;- tibble(PimaIndiansDiabetes2) %&gt;%
+  na.omit() %&gt;%
+  mutate(bmi = factor(case_when(
+    # mass &lt; 18.5 ~ &quot;underweight&quot;,
+    mass &lt; 25 ~ &quot;normal&quot;,
+    mass &gt;= 25 &amp; mass &lt; 30 ~ &quot;overweight&quot;,
+    mass &gt;= 30 ~ &quot;obese&quot;),
+    levels = c(&quot;normal&quot;, &quot;overweight&quot;, &quot;obese&quot;))
+    ) %&gt;%
+  select(-mass)
+levels(dbt$diabetes) &lt;- c(0, 1)
+
+# rms option
+dd &lt;- datadist(dbt)
+options(datadist = &quot;dd&quot;)</code></pre>
+<p>先来看看很明显的，糖尿病和非糖尿病两组之间血糖是一样的吗？假装并不知道血糖高说明有糖尿病….</p>
+<pre class="r"><code>par(mar = c(4.1, 4.1, 1.1, 2.1))
+boxplot(glucose ~ diabetes, data = dbt, 
+        col = &quot;white&quot;,
+        outline = FALSE)
+beeswarm(glucose ~ diabetes, data = dbt, 
+         pch = 21, col = 2:3, 
+         bg = &quot;grey&quot;,
+         add = TRUE)</code></pre>
+<p><img src="/post/2020-08-03-logistic-basics.zh-cn_files/figure-html/glucose-1.png" width="672" /></p>
+<pre class="r"><code>p1 &lt;- grDevices::recordPlot()</code></pre>
+<p>这里插播两个小东西： <strong>ggplot</strong> 版的的 beeswarm 图，由 <strong>ggbeeswarm</strong> 提供；以及<code>grDevices::recordPlot()</code> 这个黑魔法。两个图放在一起对比一下（）：</p>
+<pre class="r"><code>p2 &lt;- ggplot(dbt, aes(x= diabetes, y = glucose)) +
+    geom_boxplot(width = 1/2, outlier.shape = NA) +
+    geom_beeswarm(alpha = 1/3) +
+    labs(x = &quot;Diabetes&quot;,
+         y = &quot;OGTT Plasma glucose conc.&quot;) +
+    NULL
+
+cowplot::plot_grid(p1, p2, 
+                   # rel_widths = c(1, 2),
+                   ncol = 2)</code></pre>
+<p><img src="/post/2020-08-03-logistic-basics.zh-cn_files/figure-html/glucose-beeswarm-1.png" width="672" /></p>
+<p>不出所料，糖尿病患者血糖水平似乎更高。</p>
+<p>再来把坐标轴转换一下，如果血糖水平作为横轴、糖尿病是否作为纵轴会是什么样子？</p>
+<p><img src="/post/2020-08-03-logistic-basics.zh-cn_files/figure-html/geom_point-1.png" width="672" /></p>
+<p>由于 diabetes 只取 0/1，大量散点相互覆盖。</p>
+<p>尝试用不同的方法取拟合一条曲线来看变量之间的关系：</p>
+<p><img src="/post/2020-08-03-logistic-basics.zh-cn_files/figure-html/stat_smooth-1.png" width="672" /></p>
+<p>能看到确实 logit 拟合还是不错的样子。直接来上 Logistic 回归模型吧：</p>
+</div>
+<div id="模型-1" class="section level1">
+<h1>模型 1</h1>
+<pre class="r"><code>M1 &lt;- glm(diabetes ~ glucose, family = binomial, data = dbt)
+M1
+## 
+## Call:  glm(formula = diabetes ~ glucose, family = binomial, data = dbt)
+## 
+## Coefficients:
+## (Intercept)      glucose  
+##    -6.09552      0.04242  
+## 
+## Degrees of Freedom: 391 Total (i.e. Null);  390 Residual
+## Null Deviance:       498.1 
+## Residual Deviance: 386.7     AIC: 390.7
+
+summary(M1)
+## 
+## Call:
+## glm(formula = diabetes ~ glucose, family = binomial, data = dbt)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -2.1728  -0.7475  -0.4789   0.7153   2.3860  
+## 
+## Coefficients:
+##              Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) -6.095521   0.629787  -9.679   &lt;2e-16 ***
+## glucose      0.042421   0.004761   8.911   &lt;2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 498.10  on 391  degrees of freedom
+## Residual deviance: 386.67  on 390  degrees of freedom
+## AIC: 390.67
+## 
+## Number of Fisher Scoring iterations: 4
+
+round(exp(cbind(OR = coef(M1), confint(M1))), 2)
+## Waiting for profiling to be done...
+##               OR 2.5 % 97.5 %
+## (Intercept) 0.00  0.00   0.01
+## glucose     1.04  1.03   1.05</code></pre>
+<p>首先 glucose 显著相关（of course），系数是 0.04 表明是血糖高糖尿病可能性也提高（不一定是因果，只说明正相关）。
+模型 AIC 370.9，残差 386.7，Null 模型（只有截距）的残差 498.1。可以看到即使加入一个显著解释变量的时候残差也“明显”降低了（“明显”打了引号是因为这只是直觉上的明显降低，至于是否真的降低要用统计检验来证明。后面模型诊断评价涉及）。</p>
+<p>用这个模型来预测糖尿病看看之前的曲线会是什么样子：</p>
+<pre class="r"><code>M.df &lt;- data.frame(glucose = seq(0, 300, 1))
+M.df$diabetes = predict(M1, newdata = M.df, type = &quot;response&quot;)</code></pre>
+<p>生成新的预测数据之后，再来用这个数据作图：</p>
+<pre class="r"><code>ggplot(M.df, aes(x = glucose, y = diabetes)) +
+  geom_line(size = 1.2, aes(color = &quot;blue&quot;), alpha = 1/2) +
+  geom_point(data = dbt,
+             aes(glucose, as.numeric(diabetes) - 1),
+             alpha = 1/10) +
+  geom_smooth(data = dbt, formula = y ~ x, 
+              method = &quot;glm&quot;, method.args = list(family = &quot;binomial&quot;), 
+              se = FALSE, 
+              size = .5,
+             aes(glucose, as.numeric(diabetes) - 1, color = &quot;red&quot;)) +
+  scale_color_manual(name = &quot;&quot;,
+                       values = c(&quot;blue&quot; = &quot;blue&quot;,
+                                  &quot;red&quot; = &quot;red&quot;),
+                       labels = c(&quot;Predicted data&quot;, &quot;Real data&quot;)) +
+  labs(y = &quot;Diabetes probility&quot;,
+       x = &quot;OGTT Plasma glucose conc.&quot;) +
+  theme(legend.position = c(.9, .5)) +
+  NULL</code></pre>
+<p><img src="/post/2020-08-03-logistic-basics.zh-cn_files/figure-html/plotpred-1.png" width="672" /></p>
+</div>
+<div id="模型评价" class="section level1">
+<h1>模型评价</h1>
+<p>在线性模型里，一个很重要的评价模型的参数就是 <span class="math inline">\(R^2\)</span>，它表示模型可解释的变异占总变异的比例。很显然，这个比例越高越好。</p>
+<p>Logistic 回归是一种广义线性模型。如果还用 <span class="math inline">\(R^2\)</span> 来评价模型，就得到所谓“伪” R 方，pseudo <span class="math inline">\(R^2\)</span>，也叫 McFadden’s <span class="math inline">\(R^2\)</span> 。可以根据它的定义自己计算，也可以直接用 <strong>pscl</strong> 包的 <code>pR2()</code>:</p>
+<pre class="r"><code>-2 * logLik(M1)
+## &#39;log Lik.&#39; 386.666 (df=2)
+M1$deviance
+## [1] 386.666
+
+-2 * update(M1, .~. - glucose)$null.deviance
+## [1] -996.1956
+M1$null.deviance
+## [1] 498.0978
+
+
+M1.pseudo.R2 &lt;- (M1$null.deviance - M1$deviance) / M1$null.deviance
+M1.pseudo.R2
+## [1] 0.2237148
+
+pR2(M1)[&quot;McFadden&quot;]
+## fitting null model for pseudo-r2
+##  McFadden 
+## 0.2237148</code></pre>
+<p>参考 <a href="https://stats.stackexchange.com/q/82105">StackExchange: McFadden’s Pseudo-<span class="math inline">\(R^2\)</span> Interpretation</a>，0.2 - 0.4 之间认为模型表现 OK (excellent performance)。</p>
+<p>另外对于模型评价还有其他一些指标，在 <strong>rms</strong> 包 <code>lrm()</code> 可以非常方便的得到：</p>
+<pre class="r"><code>M1.lrm &lt;- lrm(diabetes ~ glucose, data = dbt)
+M1.lrm
+## Logistic Regression Model
+##  
+##  lrm(formula = diabetes ~ glucose, data = dbt)
+##  
+##                         Model Likelihood    Discrimination    Rank Discrim.    
+##                               Ratio Test           Indexes          Indexes    
+##  Obs           392    LR chi2     111.43    R2       0.344    C       0.806    
+##   0            262    d.f.             1    g        1.481    Dxy     0.612    
+##   1            130    Pr(&gt; chi2) &lt;0.0001    gr       4.398    gamma   0.616    
+##  max |deriv| 3e-12                          gp       0.271    tau-a   0.272    
+##                                             Brier    0.161                     
+##  
+##            Coef    S.E.   Wald Z Pr(&gt;|Z|)
+##  Intercept -6.0955 0.6298 -9.68  &lt;0.0001 
+##  glucose    0.0424 0.0048  8.91  &lt;0.0001 
+## 
+M1.lrm$stats[c(&quot;R2&quot;, &quot;Brier&quot;, &quot;C&quot;, &quot;Dxy&quot;)]
+##        R2     Brier         C       Dxy 
+## 0.3439656 0.1610583 0.8057692 0.6115385</code></pre>
+<p>这里给出的信息很丰富，捡几个常见的说一下：</p>
+<ul>
+<li>R2 是 the Nagelkerke R^2 index，具体计算公式不列了，取值范围 0~1。是 Discrimination 参数</li>
+<li><a href="https://en.wikipedia.org/wiki/Brier_score">Brier score</a> 在文献里也经常看到，计算方法就是预测值和观察值差值的平方和除以观测数。<code>DescTools::BrierScore()</code> 也可以计算，或者依据公式其实就是 <code>mean((M1$y - M1$fitted.values)^2)</code> 的结果
+越小表示模型预测约准确。Discrimination 参数</li>
+<li>C 就是经常见到的 C 统计量，C statistic，Concordance index，和 AUC 是相等的</li>
+<li>Dxy 是 <a href="https://en.wikipedia.org/wiki/Somers%27_D">Somers’ <em>D</em></a>， 具体公式不给了，略复杂。对于 Logistic 回归，Dxy = 2 * (AUC - 0.5)</li>
+<li>Dxy 和 Tau-a 的具体介绍可以看 <a href="http://shashiasrblog.blogspot.com/2014/01/binary-logistic-regression-on-r.html">Logistic regression, Gamma (Goodman and Kruskal Gamma)</a>，文末把这篇博文的代码附上</li>
+</ul>
+<p>比较不同模型之间是否有统计学差异，用卡方检验，卡方值是两模型残差相减，自由度两模型自由度之差。比如前面提到 M1 只是有一个变量 glucose 的时候模型残差已经明显降低，那相比 Null 模型，M1 是不是真的“统计学显著地显著”更好呢？</p>
+<pre class="r"><code>(M1Chidf &lt;- M1$df.null - M1$df.residual)
+## [1] 1
+(M1Chi &lt;- M1$null.deviance - M1$deviance)
+## [1] 111.4318
+(M1chisq.prob &lt;- 1 - pchisq(M1Chi, M1Chidf))
+## [1] 0
+
+# 或者一步计算
+with(M1, pchisq(null.deviance - deviance,
+                df.null - df.residual,
+                lower.tail = FALSE))
+## [1] 4.758898e-26</code></pre>
+<p>对照输出参看 M1.lrm 可以看到 Model Likelihood 那里的输出就是这里的计算结果。</p>
+<p>现在在 M1 的基础上再添加一个变量 bmi：</p>
+<pre class="r"><code>M2 &lt;- glm(diabetes ~ glucose + bmi, dbt, family = binomial)
+summary(M2)
+## 
+## Call:
+## glm(formula = diabetes ~ glucose + bmi, family = binomial, data = dbt)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -2.2285  -0.7236  -0.4207   0.6675   2.6183  
+## 
+## Coefficients:
+##                Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)   -7.665634   0.954940  -8.027 9.96e-16 ***
+## glucose        0.039914   0.004854   8.223  &lt; 2e-16 ***
+## bmioverweight  1.386848   0.798458   1.737  0.08240 .  
+## bmiobese       2.198471   0.756548   2.906  0.00366 ** 
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 498.1  on 391  degrees of freedom
+## Residual deviance: 368.4  on 388  degrees of freedom
+## AIC: 376.4
+## 
+## Number of Fisher Scoring iterations: 5
+
+round(exp(cbind(OR = coef(M2), confint(M2))), 2)
+## Waiting for profiling to be done...
+##                 OR 2.5 % 97.5 %
+## (Intercept)   0.00  0.00   0.00
+## glucose       1.04  1.03   1.05
+## bmioverweight 4.00  1.01  26.94
+## bmiobese      9.01  2.54  57.61
+
+M2.pseudo.R2 &lt;- (M2$null.deviance - M2$deviance) / M2$null.deviance
+M2.pseudo.R2
+## [1] 0.2603819
+
+
+with(M2, pchisq(null.deviance - deviance,
+                df.null - df.residual,
+                lower.tail = FALSE))
+## [1] 6.290107e-28
+
+M2.lrm &lt;- lrm(diabetes ~ glucose + bmi, data = dbt)
+M2.lrm
+## Logistic Regression Model
+##  
+##  lrm(formula = diabetes ~ glucose + bmi, data = dbt)
+##  
+##                          Model Likelihood    Discrimination    Rank Discrim.    
+##                                Ratio Test           Indexes          Indexes    
+##  Obs            392    LR chi2     129.70    R2       0.392    C       0.830    
+##   0             262    d.f.             3    g        1.772    Dxy     0.660    
+##   1             130    Pr(&gt; chi2) &lt;0.0001    gr       5.883    gamma   0.663    
+##  max |deriv| 0.0008                          gp       0.291    tau-a   0.293    
+##                                              Brier    0.154                     
+##  
+##                 Coef    S.E.   Wald Z Pr(&gt;|Z|)
+##  Intercept      -7.6656 0.9552 -8.02  &lt;0.0001 
+##  glucose         0.0399 0.0049  8.22  &lt;0.0001 
+##  bmi=overweight  1.3868 0.7988  1.74  0.0825  
+##  bmi=obese       2.1985 0.7569  2.90  0.0037  
+## </code></pre>
+<p>M2 相比多个模型参数都有提升，一样的，统计学显著吗？</p>
+<pre class="r"><code>anova(M1, M2, test = &quot;Chi&quot;)
+## Analysis of Deviance Table
+## 
+## Model 1: diabetes ~ glucose
+## Model 2: diabetes ~ glucose + bmi
+##   Resid. Df Resid. Dev Df Deviance  Pr(&gt;Chi)    
+## 1       390     386.67                          
+## 2       388     368.40  2   18.264 0.0001082 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+
+
+lrtest(M1.lrm, M2.lrm)
+## 
+## Model 1: diabetes ~ glucose
+## Model 2: diabetes ~ glucose + bmi
+## 
+##   L.R. Chisq         d.f.            P 
+## 1.826383e+01 2.000000e+00 1.081583e-04</code></pre>
+<p>卡方检验显示 M2 明显优于 M1。</p>
+<p>下面涉及到模型的校准（calibration），<strong>rms</strong> 做起来很方便，就直接用 rms 来继续吧：</p>
+</div>
+<div id="简单看看-rms" class="section level1">
+<h1>简单看看 <strong>rms</strong></h1>
+<p>首先是通过 bootstrap 内部验证（internal-validation）来看模型是否有明显过拟合：</p>
+<pre class="r"><code>M1.lrm &lt;- lrm(diabetes ~ glucose, data = dbt, 
+              x = TRUE, y = TRUE)
+M1.lrm
+## Logistic Regression Model
+##  
+##  lrm(formula = diabetes ~ glucose, data = dbt, x = TRUE, y = TRUE)
+##  
+##                         Model Likelihood    Discrimination    Rank Discrim.    
+##                               Ratio Test           Indexes          Indexes    
+##  Obs           392    LR chi2     111.43    R2       0.344    C       0.806    
+##   0            262    d.f.             1    g        1.481    Dxy     0.612    
+##   1            130    Pr(&gt; chi2) &lt;0.0001    gr       4.398    gamma   0.616    
+##  max |deriv| 3e-12                          gp       0.271    tau-a   0.272    
+##                                             Brier    0.161                     
+##  
+##            Coef    S.E.   Wald Z Pr(&gt;|Z|)
+##  Intercept -6.0955 0.6298 -9.68  &lt;0.0001 
+##  glucose    0.0424 0.0048  8.91  &lt;0.0001 
+## 
+
+
+M1.valid &lt;- validate(M1.lrm, method = &quot;boot&quot;, B = 1000)
+M1.valid
+##           index.orig training   test optimism index.corrected    n
+## Dxy           0.6115   0.6116 0.6115   0.0001          0.6115 1000
+## R2            0.3440   0.3454 0.3440   0.0015          0.3425 1000
+## Intercept     0.0000   0.0000 0.0055  -0.0055          0.0055 1000
+## Slope         1.0000   1.0000 1.0023  -0.0023          1.0023 1000
+## Emax          0.0000   0.0000 0.0016   0.0016          0.0016 1000
+## D             0.2817   0.2840 0.2817   0.0023          0.2794 1000
+## U            -0.0051  -0.0051 0.0003  -0.0054          0.0003 1000
+## Q             0.2868   0.2891 0.2814   0.0077          0.2791 1000
+## B             0.1611   0.1603 0.1619  -0.0017          0.1627 1000
+## g             1.4812   1.4920 1.4812   0.0109          1.4703 1000
+## gp            0.2709   0.2701 0.2709  -0.0008          0.2717 1000
+
+
+M2.lrm &lt;- lrm(diabetes ~ glucose + bmi, data = dbt, 
+              x = TRUE, y = TRUE)
+M2.lrm
+## Logistic Regression Model
+##  
+##  lrm(formula = diabetes ~ glucose + bmi, data = dbt, x = TRUE, 
+##      y = TRUE)
+##  
+##                          Model Likelihood    Discrimination    Rank Discrim.    
+##                                Ratio Test           Indexes          Indexes    
+##  Obs            392    LR chi2     129.70    R2       0.392    C       0.830    
+##   0             262    d.f.             3    g        1.772    Dxy     0.660    
+##   1             130    Pr(&gt; chi2) &lt;0.0001    gr       5.883    gamma   0.663    
+##  max |deriv| 0.0008                          gp       0.291    tau-a   0.293    
+##                                              Brier    0.154                     
+##  
+##                 Coef    S.E.   Wald Z Pr(&gt;|Z|)
+##  Intercept      -7.6656 0.9552 -8.02  &lt;0.0001 
+##  glucose         0.0399 0.0049  8.22  &lt;0.0001 
+##  bmi=overweight  1.3868 0.7988  1.74  0.0825  
+##  bmi=obese       2.1985 0.7569  2.90  0.0037  
+## 
+
+
+M2.valid &lt;- validate(M2.lrm, method = &quot;boot&quot;, B = 1000)
+M2.valid
+##           index.orig training    test optimism index.corrected    n
+## Dxy           0.6603   0.6628  0.6557   0.0071          0.6532 1000
+## R2            0.3916   0.3982  0.3807   0.0176          0.3740 1000
+## Intercept     0.0000   0.0000 -0.0234   0.0234         -0.0234 1000
+## Slope         1.0000   1.0000  0.9603   0.0397          0.9603 1000
+## Emax          0.0000   0.0000  0.0129   0.0129          0.0129 1000
+## D             0.3283   0.3361  0.3176   0.0185          0.3098 1000
+## U            -0.0051  -0.0051  0.0019  -0.0070          0.0019 1000
+## Q             0.3334   0.3412  0.3157   0.0255          0.3079 1000
+## B             0.1540   0.1526  0.1556  -0.0030          0.1570 1000
+## g             1.7720   1.9877  1.8597   0.1280          1.6441 1000
+## gp            0.2910   0.2920  0.2859   0.0061          0.2849 1000</code></pre>
+<p>给出的结果里 Dxy 和 R^2 分别有 training 和 test 的值已经据此计算出的 optimism，然后给出了校正值。这里可以看到其实 M1、M2 的过拟合不明显。</p>
+<p>做 Calibration 曲线图：</p>
+<pre class="r"><code>myPlotCalib &lt;- function (x, xlab, ylab, xlim, ylim, 
+                         legend = TRUE, subtitles = TRUE, 
+                        cols = c(&quot;red&quot;, &quot;darkgreen&quot;, &quot;black&quot;),
+                        lty = c(2, 3, 1),
+                        cex.subtitles = 0.75, riskdist = TRUE, 
+                        scat1d.opts = list(nhistSpike = 200), ...) 
+{
+    at &lt;- attributes(x)
+    if (missing(ylab)) 
+        ylab &lt;- if (at$model == &quot;lr&quot;) 
+            &quot;Actual Probability&quot;
+    else paste(&quot;Observed&quot;, at$yvar.name)
+    if (missing(xlab)) {
+        if (at$model == &quot;lr&quot;) {
+            xlab &lt;- paste(&quot;Predicted Pr{&quot;, at$yvar.name, sep = &quot;&quot;)
+            if (at$non.slopes == 1) {
+                xlab &lt;- if (at$lev.name == &quot;TRUE&quot;) 
+                    paste(xlab, &quot;}&quot;, sep = &quot;&quot;)
+                else paste(xlab, &quot;=&quot;, at$lev.name, &quot;}&quot;, sep = &quot;&quot;)
+            }
+            else xlab &lt;- paste(xlab, &quot;&gt;=&quot;, at$lev.name, &quot;}&quot;, 
+                               sep = &quot;&quot;)
+        }
+        else xlab &lt;- paste(&quot;Predicted&quot;, at$yvar.name)
+    }
+    p &lt;- x[, &quot;predy&quot;]
+    p.app &lt;- x[, &quot;calibrated.orig&quot;]
+    p.cal &lt;- x[, &quot;calibrated.corrected&quot;]
+    if (missing(xlim) &amp; missing(ylim)) 
+        xlim &lt;- ylim &lt;- range(c(p, p.app, p.cal), na.rm = TRUE)
+    else {
+        if (missing(xlim)) 
+            xlim &lt;- range(p)
+        if (missing(ylim)) 
+            ylim &lt;- range(c(p.app, p.cal, na.rm = TRUE))
+    }
+    plot(p, p.app, xlim = xlim, ylim = ylim, xlab = xlab, ylab = ylab, 
+         type = &quot;n&quot;, ...)
+    predicted &lt;- at$predicted
+    err &lt;- NULL
+    if (length(predicted)) {
+        s &lt;- !is.na(p + p.cal)
+        err &lt;- predicted - approx(p[s], p.cal[s], xout = predicted, 
+                                  ties = mean)$y
+        cat(&quot;\nn=&quot;, n &lt;- length(err), &quot;   Mean absolute error=&quot;, 
+            round(mae &lt;- mean(abs(err), na.rm = TRUE), 3), 
+            &quot;   Mean squared error=&quot;, 
+            round(mean(err^2, na.rm = TRUE), 5), 
+            &quot;\n0.9 Quantile of absolute error=&quot;, 
+            round(quantile(abs(err), 0.9, na.rm = TRUE), 3), 
+            &quot;\n\n&quot;, sep = &quot;&quot;)
+        if (subtitles) 
+            title(sub = paste(&quot;Mean absolute error=&quot;, 
+                              round(mae, 3), &quot; n=&quot;, n, sep = &quot;&quot;), 
+                  cex.sub = cex.subtitles, 
+                  adj = 1)
+        if (riskdist) 
+            do.call(&quot;scat1d&quot;, c(list(x = predicted), scat1d.opts))
+    }
+    lines(p, p.app, lty = lty[1], col = cols[1], lwd = 2)
+    lines(p, p.cal, lty = lty[2], col = cols[2], lwd = 2)
+    abline(a = 0, b = 1, lty = lty[3], col = cols[3])
+    if (subtitles) 
+        title(sub = paste(&quot;B =&quot;, at$B, &quot;repetitions,&quot;, at$method), 
+              cex.sub = cex.subtitles, adj = 0)
+    if (!(is.logical(legend) &amp;&amp; !legend)) {
+        if (is.logical(legend)) 
+            legend &lt;- list(x = xlim[1] + 0.5 * diff(xlim), y = ylim[1] + 
+                               0.32 * diff(ylim))
+        legend(legend, c(&quot;Apparent&quot;, &quot;Bias-corrected&quot;, &quot;Ideal&quot;), 
+               lwd = 1.75, seg.len = 1, cex = .75,
+               lty = lty, bty = &quot;n&quot;, col = cols)
+    }
+    invisible(err)
+}
+
+par(mar = c(5.1, 4.1, 2, 0.5),
+    mfrow = c(1, 2))
+M1.calib &lt;- calibrate(M1.lrm, method = &quot;boot&quot;, B = 1000)
+M2.calib &lt;- calibrate(M2.lrm, method = &quot;boot&quot;, B = 1000)
+
+myPlotCalib(M1.calib, las = 1, main = &quot;M1 Calibration&quot;, cex.subtitles = 0.5, 
+     xlab = &quot;Predicted probability&quot;,
+     ylab = &quot;Observed probability&quot;)
+## 
+## n=392   Mean absolute error=0.005   Mean squared error=5e-05
+## 0.9 Quantile of absolute error=0.011
+par(mar = c(5.1, 2.5, 2, 2.1))
+myPlotCalib(M2.calib, las = 1,  main = &quot;M2 Calibration&quot;, cex.subtitles = 0.5,
+            xlab = &quot;Predicted probability&quot;
+            )</code></pre>
+<p><img src="/post/2020-08-03-logistic-basics.zh-cn_files/figure-html/cliab-1.png" width="672" /></p>
+<pre><code>## 
+## n=392   Mean absolute error=0.011   Mean squared error=0.00026
+## 0.9 Quantile of absolute error=0.03</code></pre>
+<p>这里由于嫌原来 <strong>rms</strong> 提供的作图函数不能自定义颜色所以自己把提取出来的函数改了一下（参考了 <a href="https://stackoverflow.com/q/57834244">StackOverflow: Changing the colour of a calibration plot</a>）。</p>
+<p>这个图解释一下：</p>
+<ul>
+<li>上面 X 轴的 rug plot 表示预测值的分布情况，可以看到多数病例 diabetes = 0, 当然可以自己 <code>table(dbt$diabetes)</code> 验证一下</li>
+<li>标记为“Apparent”的这条曲线就是样本内校准情况</li>
+<li>标记为“Ideal”的是完美模型的情况，因为 x = y 即所有预测值和实际值完全相同</li>
+<li>标记为“Bias Corrected” 的是通过 bootstrap 抽样校准了过拟合情况的结果，这也是理论上模型用到新数据中做预测时表现的预测情形。这条曲线也是考察模型外推性的依据</li>
+<li>Mean absolute error （MAE）是预测值和实际值平均绝对值差值了, Mean squared error（MSE） 就是均方差了，类比一下方差和标准差很好理解。</li>
+</ul>
+<p>从这些结果看 M1.lrm 和 M2.lrm 的模型校准度也还可以，在 0.4 左右有一点点高估和低估。</p>
+</div>
+<div id="附" class="section level1">
+<h1>附</h1>
+<p>在一篇博文里看到的计算 Dxy 和 Tau-a 的实现，没有深究，代码看一下：</p>
+<pre class="r"><code># http://shashiasrblog.blogspot.com/2014/01/binary-logistic-regression-on-r.html
+# Logistic regression, Gamma (Goodman and Kruskal Gamma),
+# Somers&#39; D, Kendall&#39;s Tau A
+
+OptimisedConc = function(model)
+{
+  Data = cbind(model$y, model$fitted.values)
+  ones = Data[Data[, 1] == 1, ]
+  zeros = Data[Data[, 1] == 0, ]
+  conc = matrix(0, dim(zeros)[1], dim(ones)[1])
+  disc = matrix(0, dim(zeros)[1], dim(ones)[1])
+  ties = matrix(0, dim(zeros)[1], dim(ones)[1])
+  for (j in 1:dim(zeros)[1]) {
+    for (i in 1:dim(ones)[1]) {
+      if (ones[i, 2] &gt; zeros[j, 2]) {
+        conc[j, i] = 1
+        }
+      else if (ones[i, 2] &lt; zeros[j, 2]) {
+        disc[j, i] = 1
+      }
+      else if (ones[i, 2] == zeros[j, 2]) {
+        ties[j, i] = 1
+      }
+    }
+  }
+  Pairs = dim(zeros)[1] * dim(ones)[1]
+  PercentConcordance = (sum(conc) / Pairs) * 100
+  PercentDiscordance = (sum(disc) / Pairs) * 100
+  PercentTied = (sum(ties) / Pairs) * 100
+
+  PercentConcordance = (sum(conc) / Pairs) * 100
+  PercentDiscordance = (sum(disc) / Pairs) * 100
+  PercentTied = (sum(ties) / Pairs) * 100
+  N &lt;- length(model$y)
+  gamma &lt;- (sum(conc) - sum(disc)) / Pairs
+  Somers_D &lt;- (sum(conc) - sum(disc)) / (Pairs - sum(ties))
+  k_tau_a &lt;- 2 * (sum(conc) - sum(disc)) / (N * (N - 1))
+  return(list(&quot;Percent Concordance&quot; = PercentConcordance,
+      &quot;Percent Discordance&quot; = PercentDiscordance,
+      &quot;Percent Tied&quot; = PercentTied,
+      &quot;Pairs&quot; = Pairs,
+      &quot;Gamma&quot; = gamma,
+      &quot;Somers D&quot; = Somers_D,
+      &quot;Kendall&#39;s Tau A&quot; = k_tau_a))
+
+  # return(list(&quot;Percent Concordance&quot; = PercentConcordance,
+  # &quot;Percent Discordance&quot;=PercentDiscordance,
+  # &quot;Percent Tied&quot; = PercentTied,
+  # &quot;Pairs&quot; = Pairs))
+}</code></pre>
+<p>还有一个实现多种拟合优度检验的实现：</p>
+<pre class="r"><code>#####################################################################
+# NAME: Tom Loughin                                                 #
+# DATE: 1-10-13                                                     #
+# PURPOSE: Functions to compute Hosmer-Lemeshow, Osius-Rojek, and   #
+#     Stukel goodness-of-fit tests                                  #
+#                                                                   #
+# NOTES:                                                            #
+#####################################################################
+# Single R file that contains all three goodness-of fit tests
+# http://www.chrisbilder.com/categorical/Chapter5/AllGOFTests.R
+
+# Adapted from program published by Ken Kleinman as Exmaple 8.8 on the SAS and R blog, sas-and-r.blogspot.ca 
+#  Assumes data are aggregated into Explanatory Variable Pattern form.
+
+HLTest = function(obj, g) {
+ # first, check to see if we fed in the right kind of object
+ stopifnot(family(obj)$family == &quot;binomial&quot; &amp;&amp; family(obj)$link == &quot;logit&quot;)
+ y = obj$model[[1]]
+ trials = rep(1, times = nrow(obj$model))
+ if(any(colnames(obj$model) == &quot;(weights)&quot;)) 
+  trials &lt;- obj$model[[ncol(obj$model)]]
+ # the double bracket (above) gets the index of items within an object
+ if (is.factor(y)) 
+  y = as.numeric(y) == 2  # Converts 1-2 factor levels to logical 0/1 values
+ yhat = obj$fitted.values 
+ interval = cut(yhat, quantile(yhat, 0:g/g), include.lowest = TRUE)  # Creates factor with levels 1,2,...,g
+ Y1 &lt;- trials*y
+ Y0 &lt;- trials - Y1
+ Y1hat &lt;- trials*yhat
+ Y0hat &lt;- trials - Y1hat
+ obs = xtabs(formula = cbind(Y0, Y1) ~ interval)
+ expect = xtabs(formula = cbind(Y0hat, Y1hat) ~ interval)
+ if (any(expect &lt; 5))
+  warning(&quot;Some expected counts are less than 5. Use smaller number of groups&quot;)
+ pear &lt;- (obs - expect)/sqrt(expect)
+ chisq = sum(pear^2)
+ P = 1 - pchisq(chisq, g - 2)
+ # by returning an object of class &quot;htest&quot;, the function will perform like the 
+ # built-in hypothesis tests
+ return(structure(list(
+  method = c(paste(&quot;Hosmer and Lemeshow goodness-of-fit test with&quot;, g, &quot;bins&quot;, sep = &quot; &quot;)),
+  data.name = deparse(substitute(obj)),
+  statistic = c(X2 = chisq),
+  parameter = c(df = g-2),
+  p.value = P,
+  pear.resid = pear,
+  expect = expect,
+  observed = obs
+ ), class = &#39;htest&#39;))
+}
+
+# Osius-Rojek test
+# Based on description in Hosmer and Lemeshow (2000) p. 153.
+# Assumes data are aggregated into Explanatory Variable Pattern form.
+
+o.r.test = function(obj) {
+ # first, check to see if we fed in the right kind of object
+ stopifnot(family(obj)$family == &quot;binomial&quot; &amp;&amp; family(obj)$link == &quot;logit&quot;)
+ mf &lt;- obj$model
+ trials = rep(1, times = nrow(mf))
+ if(any(colnames(mf) == &quot;(weights)&quot;)) 
+  trials &lt;- mf[[ncol(mf)]]
+ prop = mf[[1]]
+ # the double bracket (above) gets the index of items within an object
+ if (is.factor(prop)) 
+  prop = as.numeric(prop) == 2  # Converts 1-2 factor levels to logical 0/1 values
+ pi.hat = obj$fitted.values 
+ y &lt;- trials*prop
+ yhat &lt;- trials*pi.hat
+ nu &lt;- yhat*(1-pi.hat)
+ pearson &lt;- sum((y - yhat)^2/nu)
+ c = (1 - 2*pi.hat)/nu
+ exclude &lt;- c(1,which(colnames(mf) == &quot;(weights)&quot;))
+ vars &lt;- data.frame(c,mf[,-exclude]) 
+ wlr &lt;- lm(formula = c ~ ., weights = nu, data = vars)
+ rss &lt;- sum(nu*residuals(wlr)^2 )
+ J &lt;- nrow(mf)
+ A &lt;- 2*(J - sum(1/trials))
+ z &lt;- (pearson - (J - ncol(vars) - 1))/sqrt(A + rss)
+ p.value &lt;- 2*(1 - pnorm(abs(z)))
+ cat(&quot;z = &quot;, z, &quot;with p-value = &quot;, p.value, &quot;\n&quot;)
+}
+
+# Stukel Test
+# Based on description in Hosmer and Lemeshow (2000) p. 155.
+# Assumes data are aggregated into Explanatory Variable Pattern form.
+
+stukel.test = function(obj) {
+ # first, check to see if we fed in the right kind of object
+ stopifnot(family(obj)$family == &quot;binomial&quot; &amp;&amp; family(obj)$link == &quot;logit&quot;)
+ high.prob &lt;- (obj$fitted.values &gt;= 0.5) 
+ logit2 &lt;- obj$linear.predictors^2
+ z1 = 0.5*logit2*high.prob
+ z2 = 0.5*logit2*(1-high.prob)
+ mf &lt;- obj$model
+ trials = rep(1, times = nrow(mf))
+ if(any(colnames(mf) == &quot;(weights)&quot;)) 
+  trials &lt;- mf[[ncol(mf)]]
+ prop = mf[[1]]
+ # the double bracket (above) gets the index of items within an object
+ if (is.factor(prop)) 
+  prop = (as.numeric(prop) == 2)  # Converts 1-2 factor levels to logical 0/1 values
+ pi.hat = obj$fitted.values 
+ y &lt;- trials*prop
+ exclude &lt;- which(colnames(mf) == &quot;(weights)&quot;)
+ vars &lt;- data.frame(z1, z2, y, mf[,-c(1,exclude)])
+ full &lt;- glm(formula = y/trials ~ ., family = binomial(link = logit), weights = trials, data = vars)
+ null &lt;- glm(formula = y/trials ~ ., family = binomial(link = logit), weights = trials, data = vars[,-c(1,2)])
+ LRT &lt;- anova(null,full)
+ p.value &lt;- 1 - pchisq(LRT$Deviance[[2]], LRT$Df[[2]])
+ cat(&quot;Stukel Test Stat = &quot;, LRT$Deviance[[2]], &quot;with p-value = &quot;, p.value, &quot;\n&quot;)
+}</code></pre>
+<p>越写发现东西越多…感觉还是要再看再写一下 <strong>rms</strong>。</p>
+<ul>
+<li><p><a href="https://mgimond.github.io/Stats-in-R/Logistic.html">Logistic regression</a></p></li>
+<li><p><a href="https://gweissman.github.io/post/evaluating-the-equivalence-of-different-formulations-of-the-scaled-brier-score/">Evaluating the equivalence of different formulations of the scaled Brier score</a></p></li>
+<li><p><a href="https://stats.stackexchange.com/a/67136">StackExchange: Brier versus AIC</a></p>
+<blockquote>
+<p>Frank Harrell:<br />
+AIC is a measure of predictive discrimination whereas the Brier score is a combined measure of discrimination + calibration.</p>
+</blockquote></li>
+<li><p><a href="https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faq-what-are-pseudo-r-squareds/">FAQ: WHAT ARE PSEUDO R-SQUAREDS?</a></p></li>
+<li><p><a href="https://stats.stackexchange.com/q/3559">StackExchange: Which pseudo- R2 measure is the one to report for logistic regression (Cox &amp; Snell or Nagelkerke)?</a></p></li>
+<li><p><a href="https://stats.stackexchange.com/q/8511">StackExchange: How to calculate pseudo-R2 from R’s logistic regression?</a></p></li>
+<li><p><a href="https://stats.stackexchange.com/q/82105">StackExchange: McFadden’s Pseudo-<span class="math inline">\(R^2\)</span> Interpretation</a></p></li>
+<li><p><a href="https://stats.stackexchange.com/q/64788">StackExchange: Interpreting a logistic regression model with multiple predictors</a></p></li>
+<li><p><a href="https://stats.stackexchange.com/q/406138">StackExchange: How to interpret the basics of a logistic regression calibration plot please?</a></p></li>
+<li><p><a href="https://stats.stackexchange.com/q/261835">StackExchange: Interpretation of calibration curve</a></p></li>
+<li><p><a href="https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faq-how-do-i-interpret-odds-ratios-in-logistic-regression/">FAQ: HOW DO I INTERPRET ODDS RATIOS IN LOGISTIC REGRESSION?</a></p></li>
+</ul>
+</div>
