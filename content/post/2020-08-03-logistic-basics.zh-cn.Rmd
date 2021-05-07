@@ -587,6 +587,7 @@ stukel.test = function(obj) {
 
 越写发现东西越多...感觉还是要再看再写一下 **rms**。
 
+
 # 参考
 
 - [Logistic regression](https://mgimond.github.io/Stats-in-R/Logistic.html)
@@ -597,6 +598,7 @@ stukel.test = function(obj) {
   >AIC is a measure of predictive discrimination whereas the Brier score is a combined measure of discrimination + calibration.
 
 - [FAQ: WHAT ARE PSEUDO R-SQUAREDS?](https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faq-what-are-pseudo-r-squareds/)
+
 - [StackExchange: Which pseudo- R2  measure is the one to report for logistic regression (Cox & Snell or Nagelkerke)?](https://stats.stackexchange.com/q/3559)
 - [StackExchange: How to calculate pseudo-R2  from R's logistic regression?](https://stats.stackexchange.com/q/8511)
 - [StackExchange: McFadden's Pseudo-$R^2$  Interpretation](https://stats.stackexchange.com/q/82105)

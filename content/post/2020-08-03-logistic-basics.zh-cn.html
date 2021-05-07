@@ -12,7 +12,7 @@ tags:
 toc: yes
 comment: yes
 lastmod: '2020-08-03T21:08:33+08:00'
-autoCollapseToc: yes
+autoCollapseToc: no
 ---
 
 <script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
@@ -184,8 +184,8 @@ M.df$diabetes = predict(M1, newdata = M.df, type = &quot;response&quot;)</code><
 M1$deviance
 ## [1] 386.666
 
--2 * update(M1, .~. - glucose)$null.deviance
-## [1] -996.1956
+-2 * logLik(update(M1, .~. - glucose))
+## &#39;log Lik.&#39; 498.0978 (df=1)
 M1$null.deviance
 ## [1] 498.0978
 
@@ -218,6 +218,14 @@ M1.lrm
 ##  Intercept -6.0955 0.6298 -9.68  &lt;0.0001 
 ##  glucose    0.0424 0.0048  8.91  &lt;0.0001 
 ## 
+
+summary(M1.lrm)
+##              Effects              Response : diabetes 
+## 
+##  Factor      Low High Diff. Effect S.E.    Lower 0.95 Upper 0.95
+##  glucose     99  143  44    1.8665 0.20947 1.4560     2.2771    
+##   Odds Ratio 99  143  44    6.4658      NA 4.2886     9.7481
+
 M1.lrm$stats[c(&quot;R2&quot;, &quot;Brier&quot;, &quot;C&quot;, &quot;Dxy&quot;)]
 ##        R2     Brier         C       Dxy 
 ## 0.3439656 0.1610583 0.8057692 0.6115385</code></pre>
@@ -309,8 +317,19 @@ M2.lrm
 ##  glucose         0.0399 0.0049  8.22  &lt;0.0001 
 ##  bmi=overweight  1.3868 0.7988  1.74  0.0825  
 ##  bmi=obese       2.1985 0.7569  2.90  0.0037  
-## </code></pre>
-<p>M2 相比多个模型参数都有提升，一样的，统计学显著吗？</p>
+## 
+
+summary(M2.lrm)
+##              Effects              Response : diabetes 
+## 
+##  Factor                 Low High Diff. Effect   S.E.    Lower 0.95 Upper 0.95
+##  glucose                99  143  44     1.75620 0.21356  1.337600   2.17480  
+##   Odds Ratio            99  143  44     5.79040      NA  3.810000   8.80030  
+##  bmi - normal:obese      3    1  NA    -2.19850 0.75688 -3.681900  -0.71500  
+##   Odds Ratio             3    1  NA     0.11097      NA  0.025174   0.48919  
+##  bmi - overweight:obese  3    2  NA    -0.81162 0.32839 -1.455200  -0.16800  
+##   Odds Ratio             3    2  NA     0.44414      NA  0.233340   0.84535</code></pre>
+<p>M2 在 M1 的基础上多个模型参数都有提升，一样的，统计学显著吗？</p>
 <pre class="r"><code>anova(M1, M2, test = &quot;Chi&quot;)
 ## Analysis of Deviance Table
 ## 
@@ -613,7 +632,8 @@ HLTest = function(obj, g) {
  # by returning an object of class &quot;htest&quot;, the function will perform like the 
  # built-in hypothesis tests
  return(structure(list(
-  method = c(paste(&quot;Hosmer and Lemeshow goodness-of-fit test with&quot;, g, &quot;bins&quot;, sep = &quot; &quot;)),
+  method = c(paste(&quot;Hosmer and Lemeshow goodness-of-fit test with&quot;, 
+             g, &quot;bins&quot;, sep = &quot; &quot;)),
   data.name = deparse(substitute(obj)),
   statistic = c(X2 = chisq),
   parameter = c(df = g-2),
@@ -679,13 +699,21 @@ stukel.test = function(obj) {
  y &lt;- trials*prop
  exclude &lt;- which(colnames(mf) == &quot;(weights)&quot;)
  vars &lt;- data.frame(z1, z2, y, mf[,-c(1,exclude)])
- full &lt;- glm(formula = y/trials ~ ., family = binomial(link = logit), weights = trials, data = vars)
- null &lt;- glm(formula = y/trials ~ ., family = binomial(link = logit), weights = trials, data = vars[,-c(1,2)])
+ full &lt;- glm(formula = y/trials ~ ., family = binomial(link = logit), 
+             weights = trials, data = vars)
+ null &lt;- glm(formula = y/trials ~ ., family = binomial(link = logit), 
+             weights = trials, data = vars[,-c(1,2)])
  LRT &lt;- anova(null,full)
  p.value &lt;- 1 - pchisq(LRT$Deviance[[2]], LRT$Df[[2]])
- cat(&quot;Stukel Test Stat = &quot;, LRT$Deviance[[2]], &quot;with p-value = &quot;, p.value, &quot;\n&quot;)
+ cat(&quot;Stukel Test Stat = &quot;, 
+     LRT$Deviance[[2]], 
+     &quot;with p-value = &quot;, 
+     p.value, &quot;\n&quot;)
 }</code></pre>
 <p>越写发现东西越多…感觉还是要再看再写一下 <strong>rms</strong>。</p>
+</div>
+<div id="参考" class="section level1">
+<h1>参考</h1>
 <ul>
 <li><p><a href="https://mgimond.github.io/Stats-in-R/Logistic.html">Logistic regression</a></p></li>
 <li><p><a href="https://gweissman.github.io/post/evaluating-the-equivalence-of-different-formulations-of-the-scaled-brier-score/">Evaluating the equivalence of different formulations of the scaled Brier score</a></p></li>
@@ -702,5 +730,9 @@ AIC is a measure of predictive discrimination whereas the Brier score is a combi
 <li><p><a href="https://stats.stackexchange.com/q/406138">StackExchange: How to interpret the basics of a logistic regression calibration plot please?</a></p></li>
 <li><p><a href="https://stats.stackexchange.com/q/261835">StackExchange: Interpretation of calibration curve</a></p></li>
 <li><p><a href="https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faq-how-do-i-interpret-odds-ratios-in-logistic-regression/">FAQ: HOW DO I INTERPRET ODDS RATIOS IN LOGISTIC REGRESSION?</a></p></li>
+<li><p><a href="https://stats.stackexchange.com/q/71517">StackExchange: Evaluating a logistic regression model</a></p></li>
+<li><p><a href="https://stackoverflow.com/q/49264221">StackOverflow: How to evaluate goodness of fit of logistic regression model using residual.lrm in R?</a></p></li>
+<li><p><a href="https://stats.stackexchange.com/q/169438">StackExchange: Evaluating logistic regression and interpretation of Hosmer-Lemeshow Goodness of Fit</a></p></li>
+<li><p><a href="https://stats.stackexchange.com/q/169000">StackExchange: Goodness-of-fit test in Logistic regression; which ‘fit’ do we want to test?</a></p></li>
 </ul>
 </div>
