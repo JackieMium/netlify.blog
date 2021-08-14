@@ -220,4 +220,4 @@ TL; DR：低碳水饮食（Low-carbohydrate diet）、生酮饮食（Ketogenic d
 
 - [Mayo Clinic: The truth behind the most popular diet trends of the moment](https://www.mayoclinic.org/healthy-lifestyle/weight-loss/in-depth/the-truth-behind-the-most-popular-diet-trends-of-the-moment/art-20390062)
 
-    > While the ketogenic diet may be recommended for some people with uncontrolled epilepsy, the high fat content — and especially the high level of unhealthy saturated fat — combined with limits on nutrient-rich fruits, veggies and grains is a concern for long-term heart health.
+  > While the ketogenic diet may be recommended for some people with uncontrolled epilepsy, the high fat content — and especially the high level of unhealthy saturated fat — combined with limits on nutrient-rich fruits, veggies and grains is a concern for long-term heart health.
