@@ -1,0 +1,88 @@
+---
+title: 用 split.screen() 进行图形组合
+author: Jackie
+date: '2020-01-19'
+slug: r-combine-plots-with-split-screen
+categories:
+  - R
+tags:
+  - R
+  - Viz
+  - 基础
+comment: yes  
+toc: yes  
+autoCollapseToc: no   
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+
+</div>
+
+<p>这个是上次学 <code>layout()</code> 组合图形时就说以后再学的东西。</p>
+<p><code>split.screen()</code> 是由 base R 的 <strong>graphics</strong> 包提供的。这个系列还包括 <code>screen()</code>、<code>erase.screen()</code> 和 <code>close.screen()</code> 这些命令配合使用。这些命令能够在一个图形设备上创建和控制多个图形区（screen，不知道翻译成什么比较合适）。和前面的 <code>layout()</code> 类似，<code>split.screen()</code> 命令与其他的分割方法（<code>par(mfrow)</code>, <code>par(mfcol)</code> 和 <code>layout()</code>）也是不兼容的。</p>
+<!--more-->
+<div id="quick-start" class="section level2">
+<h2>Quick Start</h2>
+<p>先简单看一下介绍里的帮助。<code>split.screen()</code> 从命令就能看出来作用了，它可以把当前的图形设备分割成多个图形区，这样这些图形区可以被简单地看作是不同的图形设备然后独立在这些图形设备里作图互不影响了。图形区本身还可以继续分割，这样可以做出非常复杂的图。</p>
+<p><code>screen()</code> 命令用于选取作图的图形区，<code>erase.screen</code> 通过用背景色填充来擦除一个图形区，<code>close.screen</code> 移除一个或多个图形区。</p>
+<p><code>split.screen()</code> 里的例子（有修改）：</p>
+<pre class="r"><code>set.seed(1234)
+
+split.screen(c(2, 1))
+## [1] 1 2
+## [1] 1 2
+screen()
+## [1] 1
+## [1] 1
+split.screen(c(1, 2), screen = 2)
+## [1] 3 4
+## [1] 3 4
+screen()
+## [1] 3
+## [1] 3
+
+screen(2)
+par(mar = c(4, 4, 1, 0) + .1)
+plot(rnorm(20), pch = 17)
+
+screen(3, new = FALSE)
+par(mar = c(4, 4, 1, 0) + .1)
+plot(rnorm(10), col = &#39;red&#39;, pch = 18, cex = 1.5, type = &quot;b&quot;)
+
+screen(4, new = FALSE)
+par(mar = c(4, 4, 1, 0) + .1)
+plot(rnorm(10), col = &#39;blue&#39;, pch = 20, cex = 1.5, type = &quot;b&quot;)
+
+x &lt;- density(rnorm(30))
+screen(1)
+par(mar = c(4, 4, 1, 0) + .1)
+plot(x, type = &quot;n&quot;, main = &quot;&quot;)
+polygon(x, col = &quot;violetred&quot;)</code></pre>
+<video width="672"  controls loop>
+<source src="/post/2020-01-19-r-combine-plots-with-split-screen_files/figure-html/eg.webm" />
+</video>
+<p>(动画好像没法展示出来，我只能文字描述了…)</p>
+<p>文档里这个例子已经很直观地展示了用法了。一开始 <code>split.screen(c(2, 1))</code> 把图形设备分为两行一列，这时候两个设备区会自动分配为 1、2 号 screen 并且当前活动设备是 1 号。之后再用 <code>split.screen(c(1, 2), screen = 2)</code> 指定把 2 号分割成一行两列，这时候新设备分配为 3 和 4 并且 3 处于活动状态。注意的是 2 号设备这时候还是可以用的（2 是 3+4 的区域），接下来 <code>screen(2)</code> 激活设备 2 后作图 <code>plot(rnorm(20), pch = 10)</code>，得到的应该一个两行一列、但是只有下面一半作图了的图。类似，接下来 <code>screen(3, new = FALSE)</code> 选中设备 3 后用红点作图，所以 2 的左半部分被覆盖（<code>new = FALSE</code> 保证 3 作图的时候不会清楚原来已有的内容，所以 2 上的东西还在）。然后 <code>screen(4, new = FALSE)</code> 又选中设备 4 并用蓝色点作图，这样 2 号设备的左右两部分 3、4 就分别被红色、蓝色点图覆盖一次。最后 <code>screen(1)</code> 选中设备 1 并用绿色点作图。至此整个图形设备都用完了，得到最终结果。</p>
+</div>
+<div id="figs-参数" class="section level2">
+<h2>figs 参数</h2>
+<p><code>split.screen()</code> 命令接受三个参数，<code>split.screen(figs, screen, erase = TRUE)</code>，后两个很好理解。<code>figs</code> 参数就很强大了。上面的例子里都是接受一个形如 <code>par(mfrow)</code> 形式的参数直接指定行列数，但是这个参数还接受通过一个矩阵来定义多个图形设备的方式。具体形式是 N 行 4 列，每一行四个数字分别表示图形设备的左、右、下、上四个顶点的位置，这样就能精确控制每个图形设备的大小和位置。比如：</p>
+<pre class="r"><code>split.screen(rbind(c(0, .5, 0, .5),
+                   c(.25, .75, .25, .75),
+                   c(.5, 1, .5, 1)))
+screen(1)
+plot(rnorm(10), col = &quot;black&quot;, pch = 20, )
+screen(2, new = FALSE)
+plot(rnorm(10), col = &quot;red&quot;, type = &quot;l&quot;)
+screen(3, new = FALSE)
+plot(rnorm(10), col = &quot;blue&quot;, type = &quot;b&quot;)</code></pre>
+<p>得到图：</p>
+<div class="figure">
+<img src="/post/2020-01-19-r-combine-plots-with-split-screen_files/figure-html/figs.png" alt="" />
+<p class="caption">figs</p>
+</div>
+<p>可以看到 <code>figs</code> 十分灵活，想怎么拼都可以。</p>
+<p>行吧，这一篇就这么简单。</p>
+</div>
