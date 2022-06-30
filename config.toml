@@ -1,4 +1,4 @@
-baseURL = "http://localhost:1313/"
+baseURL = "https://jiangjun.netlify.com/"
 languageCode = "zh-cn"
 defaultContentLanguage = "zh-cn"                             # en / zh-cn / ... (This field determines which i18n file to use)
 title = "Jackie's Personal Blog"
