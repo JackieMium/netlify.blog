@@ -42,3 +42,4 @@ blogdown
 
 # hugo cache
 resources
+.hugo_build.lock
