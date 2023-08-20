@@ -9,7 +9,7 @@ tags:
   - Blog
   - Life
 lastmod: '2023-08-19T23:25:17+08:00'
-draft: yes
+draft: no
 keywords: []
 description: ''
 comment: yes
