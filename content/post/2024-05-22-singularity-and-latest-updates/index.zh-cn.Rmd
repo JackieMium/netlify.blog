@@ -1,0 +1,80 @@
+---
+title: '容器 Singularity/Apptainer 简单使用'
+author: Jackie
+date: '2024-05-22'
+slug: singularity_and_latest_updates
+categories:
+  - Blog
+  - Linux
+tags:
+  - Blog
+  - 基础
+  - Code
+lastmod: '2024-05-22T22:53:24-04:00'
+draft: no
+keywords: []
+description: ''
+comment: no
+toc: no
+autoCollapseToc: no
+postMetaInFooter: no
+hiddenFromHomePage: no
+contentCopyright: no
+reward: no
+mathjax: no
+mathjaxEnableSingleDollar: no
+mathjaxEnableAutoNumber: no
+hideHeaderAndFooter: no
+flowchartDiagrams:
+  enable: no
+  options: ''
+sequenceDiagrams:
+  enable: no
+  options: ''
+---
+
+当然知道 Linux 平台最流行的容器可能是 Docker，奈何实验室服务器只有 Singularity/Apptainer。不过好在后者完全可以兼容 Docker 镜像，甚至从 dockerhub 直接 pull 都可以，也凑合能用了。 只是 Singularity 不能直接使用 Docker 的 recipe，二者语法不同。
+
+<!--more-->
+
+# 简单使用
+
+## 直接使用镜像
+
+由于我已经知道 dockerhub 上有 Debian 官方镜像了，并且 `latest` 分支/tag 永远指向最新的 stable，所以我可以直接：
+
+```
+singularity pull debian:latest
+```
+
+就可以在本地得到一个 `debian_latest.sif` 文件了。为了显式指定文件名，通常会使用 `singularity pull debian.simg debian:latest` 得到一个名为 `debian.simg` 的镜像，Singularity/Apptainer 镜像文件一般拓展名写为 `SIF` 或这 `simg` 方便识别，当然这纯粹是命名习惯无需硬性遵守。
+
+
+有了镜像，使用的时候最常见两种情况：
+
+```
+# 在镜像中运行 foobar 命令
+singularity exec foobar.simg foobar
+
+# 进入镜像内 shell 交互环境
+singularity shell foobar.simg
+```
+
+这里最常见搭配几个参数：
+
+- `-w` 或者 `--writable`，启用可写；
+- `-e` 或者 `--cleanenv`，清空当前环境变量；
+- `-f` 或者 `--fakeroot`，以 UID 0 运行，相当于 root 登录/ chroot；
+- `-B` 或者 `--bind`，映射主机文件/路径到容器
+
+比如 `singularity shell -wef debian.simg` 就可以顺利 chroot 到刚刚下载的镜像里安装软件了。
+
+```
+WARNING: --writable applies to temporary sandbox only, changes will not be written to the original image.
+INFO:    Converting SIF file to temporary sandbox...
+```
+
+
+
+- [SingularityCE: Getting Started Guides](https://sylabs.io/docs/)
+- [How to use Singularity!](https://github.com/NIH-HPC/Singularity-Tutorial)
