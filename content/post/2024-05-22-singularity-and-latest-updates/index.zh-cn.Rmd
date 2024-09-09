@@ -11,26 +11,6 @@ tags:
   - 基础
   - Code
 lastmod: '2024-05-22T22:53:24-04:00'
-draft: no
-keywords: []
-description: ''
-comment: no
-toc: no
-autoCollapseToc: no
-postMetaInFooter: no
-hiddenFromHomePage: no
-contentCopyright: no
-reward: no
-mathjax: no
-mathjaxEnableSingleDollar: no
-mathjaxEnableAutoNumber: no
-hideHeaderAndFooter: no
-flowchartDiagrams:
-  enable: no
-  options: ''
-sequenceDiagrams:
-  enable: no
-  options: ''
 ---
 
 当然知道 Linux 平台最流行的容器可能是 Docker，奈何实验室服务器只有 Singularity/Apptainer。不过好在后者完全可以兼容 Docker 镜像，甚至从 dockerhub 直接 pull 都可以，也凑合能用了。 只是 Singularity 不能直接使用 Docker 的 recipe，二者语法不同。
