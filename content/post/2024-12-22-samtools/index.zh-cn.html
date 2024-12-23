@@ -1,0 +1,140 @@
+---
+title: 零碎的 samtools 笔记
+author: Jackie
+date: '2024-12-22'
+slug: []
+categories:
+  - Bioinformatics
+tags:
+  - Bioinformatics
+  - 基础
+  - RNA-Seq
+lastmod: '2024-12-22T14:13:22-06:00'
+draft: no
+keywords: []
+description: ''
+comment: yes
+toc: yes
+autoCollapseToc: no
+postMetaInFooter: no
+hiddenFromHomePage: no
+contentCopyright: no
+reward: no
+mathjax: no
+mathjaxEnableSingleDollar: no
+mathjaxEnableAutoNumber: no
+hideHeaderAndFooter: no
+flowchartDiagrams:
+  enable: no
+  options: ''
+sequenceDiagrams:
+  enable: no
+  options: ''
+---
+
+
+<div id="TOC">
+
+</div>
+
+<p>这半年处理过几次 bulk RNA-seq 数据，经常需要进一步处理比对（align）完 <code>fastq</code> 文件之后得到的 <code>sam</code> 转换成排序的 <code>bam</code> 文件充分节省存储空间。我把经常用到的一些 <a href="https://www.htslib.org"><code>samtools</code></a> 命令放到记事本里，这里简单记录一下以后可以方便查阅。</p>
+<!--more-->
+<p>我的工作流通常是：</p>
+<ol style="list-style-type: decimal">
+<li><a href="https://github.com/FelixKrueger/TrimGalore">Trim Galore</a> 过滤 <code>fastq</code> 文件；</li>
+<li><a href="https://github.com/alexdobin/STAR">STAR</a> 构建基因组索引（genome index） 并比对得到 <code>sam</code>/<code>bam</code> 文件和基因表达定量 raw counts 文件；</li>
+<li><a href="https://github.com/deeptools/deepTools/">deepTools</a> 把 <code>sam</code>/<code>bam</code> 转换成 <code>bedGraph</code> 文件。<code>bedGraph</code> 文件还可以进一步转换为 <code>wiggle</code> hove <code>bigwig</code> 文件以节省存储空间</li>
+</ol>
+<p>在 <em>STAR</em> 做比对的时候可以同时输出 <code>sam</code> 文件，排序和非排序的 <code>bam</code> 文件，以及基因定量文件。<em>STAR</em> 命令形如：</p>
+<pre><code>STAR --runMode alignReads --runThreadN 16 \
+      --genomeDir ${REF_GENOME} \
+      --readFilesIn ${FQ_DIR}/${sample}_val_1.fq.gz ${FQ_DIR}/${sample}_val_2.fq.gz \
+      --readFilesCommand zcat \
+      --outFileNamePrefix ${OUT_DIR}/${sample}_ \
+      --quantMode TranscriptomeSAM GeneCounts \
+      --outSAMtype BAM SortedByCoordinate \
+      &amp;&gt; ${LOG_DIR}/${sample}.log</code></pre>
+<p>首先 <code>--quantMode GeneCounts</code> 会同时拿到文件名为 <code>sample1_Aligned.toTranscriptome.out.bam</code> 和 <code>sample1_ReadsPerGene.out.tab</code> 比对结果和定量文件。</p>
+<p>使用 <code>--outSAMtype BAM Unsorted</code> 会得到文件名为 <code>sample1_Aligned.out.bam</code> 这样的文件，这个文件没有对 reads 排序，所以顺序和原来的 <code>fastq</code> 文件内的 reads 顺序是对应的。而使用 <code>--outSAMtype BAM SortedByCoordinate</code> 则除此之外得到一个文件名为 <code>sample1_Aligned.sortedByCoord.out.bam</code> 的文件，这个 <code>bam</code> 文件是根据 reads 比对到基因组的位置排序的。如果使用 <code>--outSAMtype BAM Unsorted SortedByCoordinate</code> 则同时得到两个文件。</p>
+<p>在使用的时候，我发现 <em>STAR</em> 输出排序 <code>bam</code> 非常慢，而且内存需求极高，在服务器上同时多个样本并行 align 的时候对临时存储空间也成倍增加因此进程经常被系统强行终止。按照文档调低 <code>--outBAMsortingThreadN</code> 这个参数也没能明显提升速度。所以我后来转向 <em>STAR</em> 仅输出未排序 <code>bam</code> 文件，然后再通过 <code>samtools</code> 来排序。</p>
+<p>如果一个 <code>bam</code> 文明是否已经排序，使用</p>
+<pre><code>samtools -H file.bam</code></pre>
+<p>可能会看到类似于：</p>
+<pre><code>@HD     VN:1.6  SO:coordinate</code></pre>
+<p>表明 <code>bam</code> 已经根据位置排序，而未排序文件则输出类似于：</p>
+<pre><code>@HD    VN:1.6    SO:unsorted</code></pre>
+<p>查看 <code>bam</code> 文件中 （mapped）reads 数：</p>
+<pre><code>samtools view -c file.bam
+# 仅比对到基因组的 reads
+samtools view -c -F 4 file.bam
+samtools view -c -F 260 file.bam</code></pre>
+<p>或者 <code>sam</code> 和（gzip 压缩的） <code>fastq</code> 和 <code>fasta</code> 文件：</p>
+<pre><code>cat my.sam | grep -v &#39;^ *@&#39; | wc -l
+
+grep -c &quot;^&gt;&quot; file.fasta
+
+echo $(cat file.fastq|wc -l)/4|bc
+echo $(zcat yourfile.fastq.gz|wc -l)/4|bc
+zcat file.fastq| echo $((wc -l/4))
+awk &#39;{l++}END{print l/4}&#39; file.fastq</code></pre>
+<p>从 <code>bam</code> 文件查看 reads 片段读长：</p>
+<pre><code>samtools view file.bam | awk &#39;{print length($10)}&#39; | head -1000 | sort -u
+samtools view file.bam | head -n 1000000 | cut -f 10 | perl -ne &#39;chomp;print length($_) . &quot;\n&quot;&#39; | sort -n | uniq -c
+samtools view file.bam | head -n 1000 | awk &#39;{print length($10)}&#39; | sort | uniq -c | perl -ane &#39;$_ =~ s/^[ ]+//g;print $_&#39; | sort -k 1nr,1nr | head -1 | cut -f2 -d &quot; &quot;</code></pre>
+<p><code>-f 4</code> 和 <code>-F 4</code> 可以分别过滤未对比和比对到基因组的片段，所以</p>
+<pre><code>samtools view -b -f 4 file.bam &gt; unmapped.bam
+samtools view -b -F 4 file.bam &gt; mapped.bam
+# 对于双端（paired-end）测序还可以对双端 reads 分别过滤:
+samtools view -b -F 4 -f 8 file.bam &gt; onlyThisEndMapped.bam
+samtools view -b -F 8 -f 4 file.bam &gt; onlyThatEndMapped.bam
+samtools view -b -F12 file.bam &gt; bothEndsMapped.bam</code></pre>
+<p>通过 <code>bam</code> 文件确定测序数据来自单端还是双端测序：</p>
+<pre><code># 查看 bam 文明头信息包含生成 bam 文件时使用的命令的相关信息
+samtools view -H file.bam
+# 0 对应 single-end 1 对应 pair-end
+# 查看前一万行统计单端和双端比对 reads 从而间接判断数据来源
+{ samtools view -H file.bam ; samtools view file.bam | head -n10000; } | samtools view -c -f 0
+{ samtools view -H file.bam ; samtools view file.bam | head -n10000; } | samtools view -c -f 1
+# 或者仅统计所有双端 reads 数:
+samtools view -c -f 1 file.bam</code></pre>
+<p>查看 <code>bam</code> 文件的 <a href="https://www.acgt.me/blog/2014/12/16/understanding-mapq-scores-in-sam-files-does-37-42">MAPQ</a> 值：</p>
+<pre><code>samtools view file.bam | cut -f 5 | sort | uniq  -c | sort -n
+# and plot (requires `gnuplot`)
+samtools view input.bam | cut -f 5 | sort | uniq  -c | sort -n | \ 
+  awk &#39;{printf(&quot;MAPQ:%s\t%d\n&quot;,$2,$1);}&#39; | \
+  gnuplot -e &quot; set terminal dumb ;set nokey; plot &#39;-&#39; using 2:xtic(1) with boxes&quot;</code></pre>
+<blockquote>
+<p>MAPQ: MAPping Quality. It equals −10 log10 Pr{mapping position is wrong}, rounded to the nearest integer. A value 255 indicates that the mapping quality is not available.
+The maximum value of MAPQ score in <strong>Bowtie2</strong> is <code>42</code>, and <strong>BWA</strong> <code>37</code>. A value <code>255</code> indicates that the mapping quality is <code>not available</code>.</p>
+</blockquote>
+<p>处理 ChIP-seq 类似数据的时候，对于比对文件通常还会标记重复片段后续去除，通常 <a href="https://gatk.broadinstitute.org/hc/en-us">GATK: picard</a> 是最常见的工具：</p>
+<pre><code>java -Xmx64g -Xms8g \
+      -jar ${OPT_DIR}/picard.jar MarkDuplicates \
+      --REMOVE_SEQUENCING_DUPLICATES=true \
+      --CREATE_INDEX=true \
+      -I ${BAM_DIR}$/${sample}.filtered.mapped.bam \
+      -O ${BAM_DIR}/${sample}.rmdup.bam \
+      -M ${sample}.rmdup_metrics.txt</code></pre>
+<p>但其实 <em>samtools</em> 也有这个功能，文档提供的命令实例：</p>
+<pre><code>samtools markdup -f stats_file.txt \
+    -S -d 2500 --mode s --include-fails \
+    positionsort.bam markdup.bam</code></pre>
+<p>由于 <em>samtools</em> 功能涵盖对 <code>sam</code>/<code>bam</code> 文件的各种处理，为了提高效率和节约存储空间，还可以用管道连接多个 <em>samtools</em> 命令：</p>
+<pre><code>samtools collate -O -u example.bam | \
+    samtools fixmate -m -u - - | \
+    samtools sort -u - | \
+    samtools markdup - markdup.bam</code></pre>
+<p>使用 <code>-u</code> 参数表示输出结果时不使用压缩。由于这里是管道连接多个命令，前一个命令的输出马上传输到下一个命令输入，所以关闭压缩上略了这个步骤效率更高。</p>
+<p>参考：</p>
+<ul>
+<li><a href="https://www.htslib.org/doc/#manual-pages">Samtools Manual pages</a></li>
+<li><a href="https://www.biostars.org/p/178730/">Biostars: Check if BAM is derived from pair-end or single-end reads?</a></li>
+<li><a href="https://www.biostars.org/p/139006/">Biostar: How to count fastq reads</a></li>
+<li><a href="https://www.biostars.org/p/65216/">Biostars: How Can I Know The Length Of Mapped Reads From Bam File?</a></li>
+<li><a href="https://www.biostars.org/p/56246/">Biostars: How To Filter Mapped Reads With Samtools</a></li>
+<li><a href="https://www.acgt.me/blog/2014/12/16/understanding-mapq-scores-in-sam-files-does-37-42">ACGT blog: Understanding MAPQ scores in SAM files: does 37 = 42?</a></li>
+<li><a href="https://www.biostars.org/p/9516668/">Biostars: What is the MAPQ value of flag 512 for bam file?</a></li>
+<li><a href="https://www.biostars.org/p/9484786/">Biostars: Looking for a tool which provides mapping quality score distributions from BAM files</a></li>
+<li><a href="https://www.htslib.org/doc/samtools-stats.html">Samtools document: samtools stats</a></li>
+<li><a href="https://deeptools.readthedocs.io/en/develop/content/feature/effectiveGenomeSize.html">deepTools: Effective Genome Size</a></li>
+</ul>
