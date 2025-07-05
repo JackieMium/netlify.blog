@@ -33,15 +33,15 @@ sequenceDiagrams:
 
 ## 互联网/万维网之外？
 
-  从来好像互联网和万维网（World Wide Web，3W，WWW）好像就是同义词，“自古以来”网上冲浪的网就是 WWW。直到我发现还有一个东西就 Gopher，以及稍微更现代版的 Gemini。这二者都是网络协议，简单地说就是它们和 WWW 一样，是一种实现网络间通信信息展示的方案。类比就好像，同样是从中国上海到美国纽约，我们第一个想到的肯定是是坐飞机（就好像说上网我们想到的就是 WWW），但是其实还有一种途径是从海上坐轮船过去（🎵  Once more, you open the door...），而 Gopher 这个单次的原意是“地鼠”那可能就是海底隧道过去吧 :D
+  从来好像互联网和万维网（World Wide Web，3W，WWW）好像就是同义词，“自古以来”网上冲浪的网就是 WWW。直到我发现还有一个东西叫 Gopher，以及稍微更现代版的 Gemini。这二者都是网络协议，简单地说就是它们和 WWW 一样，是一种实现网络间通信信息展示的方案。类比就好像，同样是从中国上海到美国纽约，我们第一个想到的肯定是坐飞机（就好像说上网我们想到的就是 WWW），但是其实还有一种途径是从海上坐轮船过去（🎵  Once more, you open the door...），而 Gopher 这个单词的原意是“地鼠”那可能就是打地道过去吧 :D
 
 <!--more-->
 
-  其实 Gopher 是一种比 HTTP/WWW 出现更早的协议，所以在万维网还没出现以前，大家网上冲浪就已经可以通过访问“地鼠洞”（Gopher holes）来实现的，一个“地鼠洞”相当于一个万维网的网站。在万维网世界里，一个网站比如 Google 的网址是 `https://www.google.com`，在 Gopher 世界里，一个网址长这样：`gopher://gopher.floodgap.com`。把 Google 的网址复制到 Chrome/Firefox 等浏览器，回车就能访问这个网址，同样地把一个 Gopher 网址复制到 Chrome/Firefox 等浏览器，回车 **当然不能访问** 一个 Gopher 网站，duh！因为 Chrome/Firefox 等浏览器不支持 Gopher 协议（早期 Firefox 是支持的后来放弃了）。
+  其实 Gopher 是一种比 HTTP/WWW 出现更早的协议。在万维网还没出现以前，大家网上冲浪就已经可以通过访问“地鼠洞”（Gopher holes）来实现的，一个“地鼠洞”相当于一个万维网的网站。在万维网世界里，一个网站比如 Google 的网址是 `https://www.google.com`，在 Gopher 世界里，一个网址长这样：`gopher://gopher.floodgap.com`。把 Google 的网址复制到 Chrome/Firefox 等浏览器，回车就能访问这个网址，同样地把一个 Gopher 网址复制到 Chrome/Firefox 等浏览器，回车 **当然不能访问** 一个 Gopher 网站，duh！因为 Chrome/Firefox 等浏览器不支持 Gopher 协议。早期的 Firefox 提供支持，后来放弃了。
   
-  此外还有 Gemini 协议，它是在设计和功能上个介于 Gopher 和 HTTP 之间的协议，详见维基百科 [Gemini_(protocol)](https://en.wikipedia.org/wiki/Gemini_protocol#Software)
+  此外还有 Gemini 协议，它是在设计和功能上介于 Gopher 和 HTTP 之间的一种协议。同样的，使用 Gemini 协议的“网站”地址以`gemini://` 开头，比如 `gemini://geminiprotocol.net/`。万维网称之为网站的东西，Gopher 称之为“地鼠洞”（Gopher holes），Gemini 称之为“胶囊”（Capsule）。详见维基百科 [Gemini_(protocol)](https://en.wikipedia.org/wiki/Gemini_protocol#Software)
   
-  支持 Gopher 的浏览器，目前有 [Lagrange](https://github.com/skyjake/lagrange)（同时支持 Gopher 和 Gemini）、[Kristall](https://kristall.random-projects.net/)（支持 Gopher、Gemini 和 HTTP）等等，Linux 命令行还有 Lynx、Bombadillo 等等。一些有意思的网站（地鼠警告）：
+  支持 Gopher 的图形浏览器，目前有 [Lagrange](https://github.com/skyjake/lagrange)（同时支持 Gopher 和 Gemini）、[Kristall](https://kristall.random-projects.net/)（支持 Gopher、Gemini 和 HTTP）等等，Linux/BSD 命令行有 Lynx、Bombadillo 等等。一些有意思的网站（地鼠警告）：
   
 - [Floodgap](gopher://floodgap.com)
 - [SDF Gopher Club](gopher://sdf.org:70/1/)

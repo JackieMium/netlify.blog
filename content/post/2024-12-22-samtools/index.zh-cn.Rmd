@@ -32,15 +32,18 @@ sequenceDiagrams:
   options: ''
 ---
 
-这半年处理过几次 bulk RNA-seq 数据，经常需要进一步处理比对（align）完 `fastq` 文件之后得到的 `sam` 转换成排序的 `bam` 文件充分节省存储空间。我把经常用到的一些 [`samtools`](https://www.htslib.org) 命令放到记事本里，这里简单记录一下以后可以方便查阅。
+这半年处理过几次 bulk RNA-seq 和 ChIP-seq 数据，经常需要进一步处理比对（align）完 `fastq` 文件之后得到的 `sam` 转换成排序的 `bam` 文件充分节省存储空间。我把经常用到的一些 [`samtools`](https://www.htslib.org) 命令放到记事本里，这里简单记录一下方便以后查阅。
 
 <!--more-->
+
+## 工作流程
 
 我的工作流通常是：
 
 1. [Trim Galore](https://github.com/FelixKrueger/TrimGalore) 过滤 `fastq` 文件；
-2. [STAR](https://github.com/alexdobin/STAR) 构建基因组索引（genome index） 并比对得到 `sam`/`bam` 文件和基因表达定量 raw counts 文件；
-3. [deepTools](https://github.com/deeptools/deepTools/) 把 `sam`/`bam` 转换成 `bedGraph` 文件。`bedGraph` 文件还可以进一步转换为 `wiggle` hove `bigwig` 文件以节省存储空间
+2. [STAR](https://github.com/alexdobin/STAR) 构建基因组索引（genome index） 并比对得到 `sam`/`bam` 文件，如果是 RNA-seq 的话这一步 `Star` 比对后还会同时得到基因表达定量 raw counts 文件；
+3. [deepTools](https://github.com/deeptools/deepTools/) 把 `sam`/`bam` 转换成 `bedGraph` 文件。`bedGraph` 文件还可以进一步转换为 `wiggle` 或者 `bigwig` 文件以节省存储空间
+4. 对于 RNA-seq 数据，还可以使用 [*RSEM*](https://github.com/deweylab/RSEM) 再次对 *Star* 输出的 `bam` 文件定量，*RSEM* 的优势是可以同时得到 raw counts，TPM 和 FPKM
 
 
 在 *STAR* 做比对的时候可以同时输出 `sam` 文件，排序和非排序的 `bam` 文件，以及基因定量文件。*STAR* 命令形如：
@@ -61,6 +64,12 @@ STAR --runMode alignReads --runThreadN 16 \
 使用 `--outSAMtype BAM Unsorted` 会得到文件名为 `sample1_Aligned.out.bam` 这样的文件，这个文件没有对 reads 排序，所以顺序和原来的 `fastq` 文件内的 reads 顺序是对应的。而使用 `--outSAMtype BAM SortedByCoordinate` 则除此之外得到一个文件名为 `sample1_Aligned.sortedByCoord.out.bam` 的文件，这个 `bam` 文件是根据 reads 比对到基因组的位置排序的。如果使用 `--outSAMtype BAM Unsorted SortedByCoordinate` 则同时得到两个文件。
 
 在使用的时候，我发现 *STAR* 输出排序 `bam` 非常慢，而且内存需求极高，在服务器上同时多个样本并行 align 的时候对临时存储空间也成倍增加因此进程经常被系统强行终止。按照文档调低 `--outBAMsortingThreadN` 这个参数也没能明显提升速度。所以我后来转向 *STAR* 仅输出未排序 `bam` 文件，然后再通过 `samtools` 来排序。
+
+这里要注意的是在 *STAR* 比对和 *RSEM* 定量时要确保使用的参考基因组半本一致。
+
+## samtools
+
+得到 `bam` 文件，接下来可以通过 *samtools* 进行各种操作。
 
 如果一个 `bam` 文明是否已经排序，使用
 
