@@ -9,6 +9,7 @@ theme = "even"
 enableGitInfo = true # use git commit log to generate lastmod record # 可根据 Git 中的提交生成最近更新记录。
 
 ignoreFiles = ["\\.Rmd$", "_cache$", "\\.Rmarkdown$", "\\.knit\\.md$", "\\.utf8\\.md$"]
+ignoreLogs = ['warning-goldmark-raw-html']
 footnotereturnlinkcontents = "↩"
 
 # Syntax highlighting by Chroma. NOTE: Don't enable `highlightInClient` and `chroma` at the same time!
@@ -18,10 +19,12 @@ pygmentsUseClasses = true
 pygmentsCodefencesGuessSyntax = true
 
 hasCJKLanguage = true     # has chinese/japanese/korean ? # 自动检测是否包含 中文\日文\韩文
-paginate = 15                                              # 首页每页显示的文章数
 disqusShortname = "jiangjun-netlify"      # disqus_shortname
 #googleAnalytics = ""      # UA-XXXXXXXX-X
 copyright = ""            # default: author.name ↓        # 默认为下面配置的author.name ↓
+
+[pagination]
+pagerSize = 15
 
 [author]                  # essential                     # 必需
   name = "Jackie"
