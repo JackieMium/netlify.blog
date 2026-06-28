@@ -55,8 +55,13 @@ pagerSize = 15
   identifier = "categories"
   url = "/categories/"
 [[menu.main]]
-  name = "About"
+  name = "Pages"
   weight = 50
+  identifier = "pages"
+  url = "/pages/"
+[[menu.main]]
+  name = "About"
+  weight = 60
   identifier = "about"
   url = "/about/"
 
