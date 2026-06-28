@@ -17,15 +17,15 @@ author: ""
 
 # Tech
 
-[General R notes and tricks](../notes/general-r-notes)
+[General R notes and tricks](../pages/general-r-notes)
 
-[Xorg and X basic](../notes/b_b001_startx_xinit)
+[Xorg and X basic](../pages/b_b001_startx_xinit)
 
-[video driver and output config using xorg.conf files](../notes/b_b002_xorg_conf)
+[video driver and output config using xorg.conf files](../pages/b_b002_xorg_conf)
 
 # Misc
 
-[Other lives](../notes/z_cinema_list)
+[Other lives](../pages/z_cinema_list)
 
 
 
