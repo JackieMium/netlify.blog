@@ -1,5 +1,5 @@
 ---
-title: 关于
+title: About / 关于
 author: Jackie
 date: '2018-12-30'
 ---
