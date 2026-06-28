@@ -1,5 +1,6 @@
 ---
 title: "Xorg basics"
+slug: "b_b002_xorg_conf"
 date: 2026-01-25T21:31:31-06:00
 lastmod: 2026-01-30T22:12:42-06:00
 draft: false

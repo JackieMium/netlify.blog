@@ -1,5 +1,6 @@
 ---
 title: "startx and xinit"
+slug: "b_b001_startx_xinit"
 date: 2026-01-24T22:08:43-06:00
 lastmod: 2026-01-30T20:53:11-06:00
 draft: false

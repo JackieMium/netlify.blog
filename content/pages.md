@@ -2,7 +2,7 @@
 title: "Pages"
 date: 2026-01-22T22:28:13-06:00
 lastmod: 2026-01-22T22:28:13-06:00
-draft: true
+draft: false
 toc: yes
 autoCollapseToc: no
 keywords: []
