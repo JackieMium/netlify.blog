@@ -2,7 +2,7 @@
 title: 零碎的 samtools 笔记
 author: Jackie
 date: '2024-12-22'
-slug: []
+slug: 'samtools-notes'
 categories:
   - Bioinformatics
 tags:

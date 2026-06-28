@@ -2,7 +2,7 @@
 title: 零碎的 samtools 笔记
 author: Jackie
 date: '2024-12-22'
-slug: []
+slug: 'samtools-notes'
 categories:
   - Bioinformatics
 tags:
@@ -37,13 +37,16 @@ sequenceDiagrams:
 
 </div>
 
-<p>这半年处理过几次 bulk RNA-seq 数据，经常需要进一步处理比对（align）完 <code>fastq</code> 文件之后得到的 <code>sam</code> 转换成排序的 <code>bam</code> 文件充分节省存储空间。我把经常用到的一些 <a href="https://www.htslib.org"><code>samtools</code></a> 命令放到记事本里，这里简单记录一下以后可以方便查阅。</p>
+<p>这半年处理过几次 bulk RNA-seq 和 ChIP-seq 数据，经常需要进一步处理比对（align）完 <code>fastq</code> 文件之后得到的 <code>sam</code> 转换成排序的 <code>bam</code> 文件充分节省存储空间。我把经常用到的一些 <a href="https://www.htslib.org"><code>samtools</code></a> 命令放到记事本里，这里简单记录一下方便以后查阅。</p>
 <!--more-->
+<div id="工作流程" class="section level2">
+<h2>工作流程</h2>
 <p>我的工作流通常是：</p>
 <ol style="list-style-type: decimal">
 <li><a href="https://github.com/FelixKrueger/TrimGalore">Trim Galore</a> 过滤 <code>fastq</code> 文件；</li>
-<li><a href="https://github.com/alexdobin/STAR">STAR</a> 构建基因组索引（genome index） 并比对得到 <code>sam</code>/<code>bam</code> 文件和基因表达定量 raw counts 文件；</li>
-<li><a href="https://github.com/deeptools/deepTools/">deepTools</a> 把 <code>sam</code>/<code>bam</code> 转换成 <code>bedGraph</code> 文件。<code>bedGraph</code> 文件还可以进一步转换为 <code>wiggle</code> hove <code>bigwig</code> 文件以节省存储空间</li>
+<li><a href="https://github.com/alexdobin/STAR">STAR</a> 构建基因组索引（genome index） 并比对得到 <code>sam</code>/<code>bam</code> 文件，如果是 RNA-seq 的话这一步 <code>Star</code> 比对后还会同时得到基因表达定量 raw counts 文件；</li>
+<li><a href="https://github.com/deeptools/deepTools/">deepTools</a> 把 <code>sam</code>/<code>bam</code> 转换成 <code>bedGraph</code> 文件。<code>bedGraph</code> 文件还可以进一步转换为 <code>wiggle</code> 或者 <code>bigwig</code> 文件以节省存储空间</li>
+<li>对于 RNA-seq 数据，还可以使用 <a href="https://github.com/deweylab/RSEM"><em>RSEM</em></a> 再次对 <em>Star</em> 输出的 <code>bam</code> 文件定量，<em>RSEM</em> 的优势是可以同时得到 raw counts，TPM 和 FPKM</li>
 </ol>
 <p>在 <em>STAR</em> 做比对的时候可以同时输出 <code>sam</code> 文件，排序和非排序的 <code>bam</code> 文件，以及基因定量文件。<em>STAR</em> 命令形如：</p>
 <pre><code>STAR --runMode alignReads --runThreadN 16 \
@@ -57,6 +60,11 @@ sequenceDiagrams:
 <p>首先 <code>--quantMode GeneCounts</code> 会同时拿到文件名为 <code>sample1_Aligned.toTranscriptome.out.bam</code> 和 <code>sample1_ReadsPerGene.out.tab</code> 比对结果和定量文件。</p>
 <p>使用 <code>--outSAMtype BAM Unsorted</code> 会得到文件名为 <code>sample1_Aligned.out.bam</code> 这样的文件，这个文件没有对 reads 排序，所以顺序和原来的 <code>fastq</code> 文件内的 reads 顺序是对应的。而使用 <code>--outSAMtype BAM SortedByCoordinate</code> 则除此之外得到一个文件名为 <code>sample1_Aligned.sortedByCoord.out.bam</code> 的文件，这个 <code>bam</code> 文件是根据 reads 比对到基因组的位置排序的。如果使用 <code>--outSAMtype BAM Unsorted SortedByCoordinate</code> 则同时得到两个文件。</p>
 <p>在使用的时候，我发现 <em>STAR</em> 输出排序 <code>bam</code> 非常慢，而且内存需求极高，在服务器上同时多个样本并行 align 的时候对临时存储空间也成倍增加因此进程经常被系统强行终止。按照文档调低 <code>--outBAMsortingThreadN</code> 这个参数也没能明显提升速度。所以我后来转向 <em>STAR</em> 仅输出未排序 <code>bam</code> 文件，然后再通过 <code>samtools</code> 来排序。</p>
+<p>这里要注意的是在 <em>STAR</em> 比对和 <em>RSEM</em> 定量时要确保使用的参考基因组半本一致。</p>
+</div>
+<div id="samtools" class="section level2">
+<h2>samtools</h2>
+<p>得到 <code>bam</code> 文件，接下来可以通过 <em>samtools</em> 进行各种操作。</p>
 <p>如果一个 <code>bam</code> 文明是否已经排序，使用</p>
 <pre><code>samtools -H file.bam</code></pre>
 <p>可能会看到类似于：</p>
@@ -138,3 +146,4 @@ The maximum value of MAPQ score in <strong>Bowtie2</strong> is <code>42</code>, 
 <li><a href="https://www.htslib.org/doc/samtools-stats.html">Samtools document: samtools stats</a></li>
 <li><a href="https://deeptools.readthedocs.io/en/develop/content/feature/effectiveGenomeSize.html">deepTools: Effective Genome Size</a></li>
 </ul>
+</div>

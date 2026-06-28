@@ -2,12 +2,16 @@
 title: 使用 qemu 安装配置虚拟机 Devuan 系统切换 init 为 dinit
 author: Jackie
 date: '2023-09-03'
-slug: [qemu-devuan-dinit-as-init]
+slug: "qemu-devuan-dinit-as-init"
 categories:
   - Linux
 tags:
   - Linux
   - Unix
+  - init
+  - Debian
+  - VM
+  - qemu
 lastmod: '2025-07-04T20:40:27-05:00'
 draft: no
 keywords: []
@@ -15,9 +19,9 @@ description: ''
 comment: yes
 toc: yes
 autoCollapseToc: no
-postMetaInFooter: no
+postMetaInFooter: yes
 hiddenFromHomePage: no
-contentCopyright: no
+contentCopyright: yes
 reward: no
 mathjax: no
 mathjaxEnableSingleDollar: no
@@ -31,11 +35,11 @@ sequenceDiagrams:
   options: ''
 ---
 
-以前都是使用 VirtualBox 安装和管理虚拟机，知道有 `qemu` 但是一直没有试用。这次正好发现一个新的 `init` 叫 [dinit](https://github.com/davmac314/dinit)，开发者的[系列博客](https://davmac.org/blog/)非常值得一看。以前我也知道还有 [runit](http://smarden.org/runit/) 并且在 [Devuan GNU/Linux](https://www.devuan.org/) 试验过。由于 Devuan 本身就是非 [systemd](https://systemd.io/) 系统，所以切换到另一个 `init` 并不需要卸载 `systemd` 这种~危险~操作。
+以前都是使用 VirtualBox 安装和管理虚拟机，知道有 `qemu` 但是一直没有试用。这次正好发现一个新的 `init` 叫 [dinit](https://github.com/davmac314/dinit)，开发者的[系列博客](https://davmac.org/blog/)非常值得一看。以前我也知道还有 [runit](http://smarden.org/runit/) 并且在 [Devuan GNU/Linux](https://www.devuan.org/) 试验过。由于 Devuan 本身就是非 [systemd](https://systemd.io/) 系统，所以切换到另一个 `init` 并不需要卸载 `systemd` 这种*危险*操作。
 
 <!--more-->
 
-很自然，我想试试用 `qemu` 安装一个 Devuan 虚拟机，并且尝试安装 `dinit` 作为系统 init。下载的时候我发现最新 Devuan 5.0 stable 系统代号 *Daedalus* 已经提供 `runit` 作为安装系统的时候 init 选择之一，另外提供的两个选择分别是 [SysVinit](https://github.com/slicer69/sysvinit) 和 [OpenRC](https://github.com/OpenRC/openrc)。这样 `dinit` 算是第四个了！
+很自然，我想试试用 `qemu` 安装一个 Devuan 虚拟机，并且尝试安装 `dinit` 作为系统 init。下载的时候我发现最新 Devuan 5.0 stable 系统代号 *Daedalus* 已经提供 `runit` 作为安装系统的时候 init 选择之一，另外提供的两个选择分别是 [SysVinit](https://github.com/slicer69/sysvinit) 和 [OpenRC](https://github.com/OpenRC/openrc)。这样 `dinit` 算是第四个了！然而 `dinit` 目前作为系统 `init` 还没有获得 Devuan 官方支持，也没有提供打包，只有自己下载源码编译安装才可以实现。
 
 ## 配置 UEFI 模式 qemu 虚拟机并安装 Devuan Daedalus
 
@@ -93,7 +97,7 @@ efivarfs on /sys/firmware/efi/efivars type efivarfs (rw,nosuid,nodev,noexec,rela
 
 现在可以通过 UEFI Shell 手动指定启动 `grub2` 顺利引导系统了。但是这个启动失败过程会在每次启动的时候出现，下面来解决这个问题。
 
-## 修改虚拟机 UEFI 固件
+## 保存虚拟机 UEFI 固件设置
 
 上面提到 `ovmf/README.Debian` 这个文档，它介绍所有文件名里带 *VAR* 的都是模板文件，供读写使用，这个意思就是用这个固件的话就可以改动并且保存 BIOS 设置到这个固件。注意 `ovmf` 这个包会安装不同的文件在 `/usr/share/ovmf` 和 `/usr/share/OVMF` 两个目录。文档对于所有固件文件都有详细说明，具体使用方法互联网上就有很多教程了，简单搜索一下就行。简单地说就是仍然以 `ovmf/OVMF.fd` 作为只读 UEFI 引导固件，同时复制一份 `OVMF/OVMF_VARS.fd` 作为模板读写数据，这样可以把对 BIOS设置的 UEFI 写入这个可读写固件。
 
@@ -129,7 +133,7 @@ qemu-system-x86_64 --enable-kvm \
 
 现在虚拟机每次都会使用 `Devuan.fd` 启动直接进入 `grub2` 。注意，这里还继续使用了 `OVMF_CODE.fd`，因为它负责初始化 BIOS引导。
 
-## SSH 端口转发
+## 宿主机端口转发
 
 在安装器里我选择了 `runit` 作为系统 `init`、没有选择安装任何桌面环境，现在进入系统的话可以得到一个全新安装的 Devuan 系统，网络是可用的。为了方便这里再添加虚拟机 22 到主机 5679 的[端口映射](https://wiki.qemu.org/Documentation/Networking)，这样可以在主机 ssh 连接虚拟机，所以现在启动虚拟机的命令变成：
 
@@ -176,9 +180,9 @@ qemu-img create -f qcow2 -F qcow2 -b Devuan.qcow2 Devuan_new.qcow2
 
 ## 切换系统 init 为 dinit
 
-`dinit` 是开发者 Davin McCall 几年前开始开发的一个项目，现在已经比较成熟了，文档也比较齐全。目前 [Artix Linux](https://artixlinux.org/) 和 [Chimera Linux](https://chimera-linux.org/about/) 这两个 Linux 发行版已经把 `dinit` 作为系统默认的 `init`。
+`dinit` 是开发者 Davin McCall 几年前开始开发的一个项目，现在已经很成熟了，文档也很齐全，工具主要包括 `dinit` 作为系统 `init` ，和 `dinitctl` 作为服务管理工具，另外还有常规的负责开关机重启的命令。目前 [Chimera Linux](https://chimera-linux.org/about/) 这个 Linux 发行版已经把 `dinit` 作为默认的 `init`，而  [Artix Linux](https://artixlinux.org/) 则分别提供使用 `openrc`、 `dinit`、`runit` 和 `s6` 等作为 `init` 的多种系统镜像文件供选择。Debian 肯定没有官方支持，。
 
-在 Devuan 上要将现在使用的 `runit` 切换到 `dinit`，不需要卸载 `runit`，所以理论上是随时可以切换回来的。并且上面已经把初始系统留了快照，所以虚拟机已经备份好了。
+在 Devuan 上要将现在使用的 `runit` 切换到 `dinit`，不需要卸载 `runit`，所以理论上是随时可以切换回来的。并且上面已经把初始系统磁盘留了快照，所以虚拟机已经备份好了。
 
 因为 `dinit` 没有提供二进制包需要自己从源码编译，所以首先来安装一些需要的包（这里用 root 用户登录）：
 
@@ -186,7 +190,7 @@ qemu-img create -f qcow2 -F qcow2 -b Devuan.qcow2 Devuan_new.qcow2
 apt install -y doas build-essential git vim
 ```
 
-为了方便安装完后直接用在 `/etc/doas.conf` 里设置：
+按照开发的推荐，还可以装上 `eudev` 和 一个日志管理工具，比如 `rsyslog` 。为了方便使用 root 权限可以直接在 `/etc/doas.conf` 里设置：
 
 ```
 permit nopass :USER
@@ -194,113 +198,175 @@ permit nopass :USER
 
 这样所有当前用户组的用户都不需要输入密码了，当然只有在虚拟机里才会这么放肆。
 
-从 GitHub 下载 `dinit` 源码后按照文档，设置了 prefix 为 `/usr/local` ，这样 `dinit` 、`dinitctl` 这些命令都会安装到 `/usr/local/sbin`。完成 [Getting Started with Dinit](https://github.com/davmac314/dinit/blob/master/doc/getting_started.md) 的测试。接下来就是按照 [Dinit as init: using Dinit as your Linux system's init](https://github.com/davmac314/dinit/blob/master/doc/linux/DINIT-AS-INIT.md) 把 `dinit` 设置为系统 `init`。
+从 GitHub 下载 `dinit` 源码后按照文档，设置了 prefix 为 `/usr/local` 以及 `--shutdown-prefix=dinit-` :
 
-如果直接这时候在启动的时候在 `grub2` 界面按下 `e` 编辑启动项，在 `linux` 内核配置这一行末尾加上 `init=/usr/local/sbin/dinit` 的话系统会启动失败，报错 `early-filesystems.sh` 这个脚本执行失败。尝试加上 `single` 参数启动到单用户模式同样报错。但是在这个报错页面依然可以用 root 密码进入恢复模式（Recovery mode）。这时候可以查看这个脚本所有内容：
+```
+./configure --bindir=/usr/local/bin --sbindir=/usr/local/sbin --mandir=/usr/local/share/man --shutdown-prefix=dinit-
+```
+
+这样编译得到除了 `/usr/local/bin/dinit` 这些作为 init 和 service manager 的组件以外，`/usr/local/sbin/` 还将安装 `dinit-shutdown` 和 `dinit-reboot` 等。这个时候就可以参照 [Getting Started with Dinit](https://github.com/davmac314/dinit/blob/master/doc/getting_started.md) 简单测试 `dinitctl` 单独作为 service manager 的功能 。接下来就是按照 [Dinit as init: using Dinit as your Linux system's init](https://github.com/davmac314/dinit/blob/master/doc/linux/DINIT-AS-INIT.md) 把 `dinit` 设置为系统 `init`。
+
+按照文档的推荐做法，使用 `dinit` 作为系统 init 需要确保 `dinit` 负责系统启动期间初始化文件系统挂载和检查、设备管理、准备登录 console 以及启动其他自定义服务等等。在源码包里 `doc/linux/services` 附带了所以必须上述服务的示例文件。`dinit` 的工作逻辑是，当系统启动后内核将进程传递到 init 时，这里是 dinit，它会自动查找 `/etc/dinit.d` 等目录（具体参考 `man 8 dinit`) 下的 `boot.d` 列出的默认启动服务， `boot.d` 里的服务脚本一般是指向 `/etc/dinit.d` 对应文件的软链接。所以逻辑就是 `/etc/dinit.d` 存放所有安装的服务，需要启动某个服务的时候在 `boot.d` 建立对应服务的软连接就可以了。默认情况下 `boot.d` 里只有 `dhcpcd`，`sshd`，`modules` 和 `late-filesystems`  几个文件。
+
+保守的做法是，移除 `sshd` 和 `dhcpcd`，因为这两个服务完全是应用服务，不关乎系统正常工作，可以等到确保 `dinit` 正常工作后随时启动它们。剩下是 `modules` 和 `late-filesystems` ，为了加载可能需要的内核模块和准备所有文件系统。查看这两个文件内容：
+
+```
+$ cat modules
+type = scripted
+command = /etc/dinit.d/modules.sh start
+log-type = buffer
+restart = false
+
+depends-on: early-filesystems
+
+
+$ cat late-filesystems
+# Filesystems which can be mounted after login is enabled.
+
+type = scripted
+command = /etc/dinit.d/late-filesystems.sh start
+restart = false
+logfile = /var/log/late-filesystems.log
+start-timeout = 0   # unlimited 
+
+options: start-interruptible
+
+depends-on: rcboot
+```
+
+这两个服务的正常启动分别依赖 `early-filesystems` 和 `rcboot`。继续查看会发现`early-filesystems` 会执行 `early-filesystems.sh` 这个脚本，`rcboot` 依赖 `filesystems` ，` filesystems` 依赖 `udevd`、`rootrw`、`auxfschec` 和 `udev-settle` 四个服务....这样逐个服务按照依赖关系整理，最确保所有服务和脚本都能正常运行，就确保了 `dinit` 能最终正常启动系统。
+
+这个做法听起来就很繁琐，所以上面说这是“保守”的做法，因为它完全是依照各个服务的依赖关系和启动顺序手动逆向链式整理出来的，这样的做法的好处就是整理一遍之后就能完全理解为什么最后这些服务被启动了，以及它们的相对顺序。
+
+既然有“最保守”的做法，那就有“不保守”的做法。我在实际虚拟机里尝试的时候，就是采取的捷径。简单地说，就是先尝试以 `dinit` 启动，通过查看启动情况，哪里出现服务启动失败就是解决这个错误，最后一步步所有错误都解决了，系统也就正常启动了。最简单的做法是重启虚拟机的时候在 `grub2` 界面按下 `e` 编辑启动项，在 `linux` 内核配置这一行末尾加上 `init=/usr/local/sbin/dinit` 手动指定当前启动使用 `dinit`。不出意外的话系统会出现某个服务启动失败，比如在默认情况下启动出错在：
+
+
+
+出错的服务是 ` filesystems`，具体的错误在上面两行，`hwclock` 命令不存在。由于只是设置硬件时钟的命令，完全可以放心禁用。查找一下，具体是 ` filesystems` 依赖 `rootrw`，`rootrw` 又依赖 `hwclock`。所以很简单，在 `rootrw` 服务里把 `waits-for: hwclock` 这一行依赖暂时注释掉。
+
+由于现在系统启动失败，但是 rescue 模式可用，所以在上面这个界面选择选择 `e` 然后输入 root 密码就可以进入 rescue 模式了。在这个模式下，根分区会以只读模式挂载，但是现在需要修改 `/etc/dinit.d/rootrw` 服务文件依赖，所以需要
+
+```
+mount -o remount,rw /
+```
+
+将根分区重启挂载为可读。修改 `rootrw` 后重启。现在刚刚出现的 `hwclock` 应该就不会再出现了。但是启动仍然在 `filesystems` 服务出现错误，可以看到它的所有依赖服务 `udevd`、`rootrw`、`auxfscheck` 和 `udev-settle` 都已经启动成功，表明现在失败的是 ` filesystems`。查看 ` filesystems` 内容：
+
+```
+# Auxillary (non-root) filesystems
+
+type = scripted
+command = /etc/dinit.d/filesystems.sh start
+restart = false
+logfile = /var/log/dinit-filesystems.log
+start-timeout = 1200   # 20 minutes
+
+depends-on: udevd
+depends-on: rootrw
+waits-for: auxfscheck
+waits-for: udev-settle
+```
+
+表明这个服务运行了同名脚本 `/etc/dinit.d/filesystems.sh start` ，继续查看这个脚本：
 
 ```
 #!/bin/sh
+export PATH=/usr/bin:/usr/sbin:/bin:/sbin
 
 set -e
 
-if [ "$1" = start ]; then
+if [ "$1" != "stop" ]; then
 
-    PATH=/usr/bin:/usr/sbin:/bin:/sbin
+  echo "Mounting auxillary filesystems...."
+  swapon /swapfile
+  mount -avt noproc,nonfs
 
-    # Must have sysfs mounted for udevtrigger to function.
-    mount -n -t sysfs sysfs /sys
-    
-    # Ideally devtmpfs will be mounted by kernel, we can mount here anyway:
-    mount -n -t devtmpfs tmpfs /dev
-    mkdir -p /dev/pts /dev/shm
-    mount -n -t tmpfs -o nodev,nosuid tmpfs /dev/shm
-    mount -n -t devpts -o gid=5 devpts /dev/pts
-
-    # /run, and various directories within it
-    mount -n -t tmpfs -o mode=775 tmpfs /run
-    mkdir /run/lock /run/udev /run/sshd
-    
-    # "hidepid=1" doesn't appear to take effect on first mount of /proc,
-    # so we mount it and then remount:
-    mount -n -t proc -o hidepid=1 proc /proc
-    mount -n -t proc -o remount,hidepid=1 proc /proc
-
-fi
+fi;
 ```
 
-这个脚本内容就是在创建一些必要的目录和挂载一些需要的文件系统。在恢复模式 `mount` 命令查看输出发现 `/sys`、`/dev`、`/dev/pts`、`/run` 和 `/proc` 这些目录都已经按照脚本内容挂载了，唯一就是  `/dev/pts` 目录不存在当然也就没有正确挂载。在恢复模式创建这个目录并挂载又发现没有出错。尝试运行这个脚本所有命令都发现可以执行不会报错，但是只要直接启动就会在这个脚本报错。去掉 `set -e` 这一行竟然发现能正常通过 `early-filesystems.sh` 这个脚本了，最后在 Mastodon 上得到开发者 Davin McCall 指出系统启动时 `intiramfs` 可能已经挂载了这些文件系统，所以 `early-filesystems.sh` 这个脚本再次执行的时候目录已经存在、需要挂载的文件系统已经挂载好了所以报错，脚本退出，启动中断。知道原因后，就能解释为什么注释掉 `set -e` 这个脚本不在报错而且可以正常启动。
+发现这个脚本只执行两个命令，并且错误很明显：`swapon` 默认使用一个系统文件作为交换分区，和实际情况不符。比如在这里只需要改正其为 `swapon /dev/vda3` 重启就发现 `filesystems` 不再报错了。当然，会出现新的错误：
 
-到了这一步，剩下就是根据内容和系统命令路径对每个脚本改动进行改动，让系统可以顺利启动、需要的服务可以开启。
 
-比如 `sysklogd` 服务的原文件是：
+
+`rcboot` 服务出错。同样思路查看 `rcboot.sh` ：
 
 ```
-# This example service for a syslog daemon is based on the use of Troglobit's sysklogd:
-#   https://github.com/troglobit/sysklogd
-# Unfortunately it does not support readiness notification, so we use a "bgprocess" service.
+  ...
+  # empty utmp, create needed directories
+  : > /var/run/utmp
+  mkdir -m og-w /var/run/dbus
 
-type = bgprocess
-smooth-recovery = true
+  # Configure random number generator
+  if [ -e /var/state/random-seed ]; then
+    cat /var/state/random-seed > /dev/urandom;
+  fi
+  
+  # Configure network
+  /sbin/ifconfig lo 127.0.0.1
+
+  # You can put other static configuration here:
+  #/sbin/ifconfig eth0 192.168.1.38 netmask 255.255.255.0 broadcast 192.168.1.255
+
+  echo "myhost" > /proc/sys/kernel/hostname
+
+  # /usr/sbin/alsactl restore
+  ...
+```
+
+发现这个脚本里出现 `/sbin/ifconfig lo 127.0.0.1` 这行命令，这里没有安装。改为 `/sbin/ifup lo`。偷懒一下，把 `/sbin/ifup eth0` 也加在这一行下面，同时可以把下面设置主机名也改好，这几行改为：
+
+```
+/sbin/ifup lo
+/sbin/ifup eth0
+echo "MyDevuan.vm.local" > /proc/sys/kernel/hostname
+```
+
+再保存重启。在我这里，改到这里系统已经可以完全启动到 tty1，至此，dinit 完全接管 init 正常启动了系统：
+
+```
+root@MyDevuan:~# ps -aux |head -n2
+USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root         1  0.2  0.1   6500  3560 ?        S    14:06   0:00 /usr/local/bin/dinit
+root@MyDevuan:~# dinitctl list
+[[+]     ] boot
+[{+}     ] tty1 (pid: 370)
+[{+}     ] loginready (has console)
+[{+}     ] rcboot
+[{+}     ] filesystems
+[{+}     ] udevd
+[{+}     ] early-filesystems
+[{+}     ] rootrw
+[{+}     ] rootfscheck
+[{+}     ] udev-trigger
+[{+}     ] auxfscheck
+[{+}     ] udev-settle
+[     {X}] dbusd
+[     {X}] syslogd
+[{+}     ] tty2 (pid: 369)
+[{+}     ] tty3 (pid: 368)
+[{+}     ] tty4 (pid: 367)
+[{+}     ] tty5 (pid: 366)
+[{+}     ] tty6 (pid: 365)
+[{+}     ] modules
+[{+}     ] late-filesystems
+```
+
+到了这一步，剩下就是根据内容和系统命令路径对每个脚本改动进行改动，让系统可以顺利启动、需要的服务可以开启。比如这里 `dbus` 启动失败了，因为没有安装它。查看发现 `loginready` 依赖它，因为现在虚拟机系统暂时还不涉及图形化登录和桌面环境这些，`dbus` 可以直接注释掉。另一个失败的服务 `syslogd` 也类似，系统只安装了 `rsyslogd`，所以相应改正服务脚本对应内容
+
+```
 command = /usr/sbin/syslogd
 pid-file = /var/run/syslogd.pid
-options = starts-log
-
-depends-on = rcboot
 ```
-
-但是实际上要参考 [Gentoo Wiki: Sysklogd](https://wiki.gentoo.org/wiki/Sysklogd)  改为：
+改为：
 
 ```
-type = bgprocess
-smooth-recovery = true
-command = /usr/local/sbin/syslogd -m 0 -s -s -f /etc/syslog.conf -C /var/run/syslogd.cache -P /var/run/syslogd.pid
-pid-file = /var/run/syslogd.pid
-options = starts-log
-
-depends-on = rcboot
+command = /usr/sbin/rsyslogd
+pid-file = /var/run/rsyslogd.pid
 ```
 
-并且增加配置 `/etc/syslog.conf`：
+`dinitctl reload syslogd`  之后 `dinitctl start syslogd` 就可以正常启动了！
 
-```
-auth,authpriv.*                  /var/log/auth.log
-*.*;auth,authpriv.none          -/var/log/syslog
-
-kern.*                          -/var/log/kern.log
-mail.*                          -/var/log/mail.log
-
-mail.err                         /var/log/mail.err
-
-*.=info;*.=notice;*.=warn;\
-        auth,authpriv.none;\
-        cron,daemon.none;\
-        mail,news.none          -/var/log/messages
-
-*.=emerg                        *
-
-include /etc/syslog.d/*.conf
-```
-
-服务就可以正常启动了。
-
-而 `netdev-enp3s0` 服务因为虚拟机的网卡实际上是 `eth0` 那内容就需要重命名为 `netdev-eth0`并且相应 `/etc/udev/rules.d/81-netdev.rules` 也要改为：
-
-```
-ACTION=="add" SUBSYSTEM=="net" NAME=="eth0" RUN{program}="/usr/local/sbin/dinitctl trigger netdev-eth0"
-```
-
-尽管如此网卡每次开机后设备不会启用，所以还需要单独再增加一个启动网络服务的脚本：
-
-```
-type = process
-command = /sbin/ifup eth0
-
-depends-on = rcboot
-depends-on = loginready
-waits-for = sshd
-```
-
-在我测试的时候，解决这几个小问题后系统就可以通过 `dinit` 完美启动到多用户模式并且网络已经连通。这时候就可以在 `/etc/default/grub` 里就设置：
+现在所有需要的系统服务都已经可以正常启动，网络已经连接，可以 `dinitctl enable sshd` 了。所有服务正常启动就可以在 `/etc/default/grub` 里就设置：
 
 ```
 GRUB_CMDLINE_LINUX_DEFAULT="quiet init=/usr/local/sbin/dinit"
@@ -326,13 +392,13 @@ GRUB_CMDLINE_LINUX_DEFAULT="quiet init=/usr/local/sbin/dinit"
 
 ```
 qemu-system-x86_64 -nodefaults -enable-kvm -m 3g -smp 2 
-	-global qxl-vga.vgamem_mb=64 -vga qxl \
-	-drive "if=virtio,media=disk,file=$HOME/Programs/VMs/vdisks/Devuan.qcow2" \
-	-drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
-	-drive "if=pflash,format=raw,file=$HOME/Programs/VMs/firmwares/Devuan.fd" \
-	-netdev user,id=net0,hostfwd=tcp::5679-:22 \
-	-device virtio-net-pci,netdev=net0 \
-	-daemonize -no-reboot
+    -global qxl-vga.vgamem_mb=64 -vga qxl \
+    -drive "if=virtio,media=disk,file=$HOME/Programs/VMs/vdisks/Devuan.qcow2" \
+    -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
+    -drive "if=pflash,format=raw,file=$HOME/Programs/VMs/firmwares/Devuan.fd" \
+    -netdev user,id=net0,hostfwd=tcp::5679-:22 \
+    -device virtio-net-pci,netdev=net0 \
+    -daemonize -no-reboot
 ```
 
 这里另加的参数和作用：
@@ -359,6 +425,32 @@ qemu-system-x86_64 -nodefaults -enable-kvm -m 3g -smp 2
 
 - `-no-reboot` 设置禁止虚拟机重启，它的作用是在运行的虚拟机里重启系统时，虚拟机会关机而不会重启
 
+### Rootless Xorg
+
+如果普通用户需要通过 tty 通过 `startx` 或者 `xinit` 直接启动图形界面，还需要安装启动 `dbus` 和 `seatd` 服务：
+
+```
+# elogind
+type            = process
+command         = /usr/libexec/elogind
+smooth-recovery = true
+depends-on      = dbus
+
+# dbus
+type = process
+command = /usr/bin/sh -c "install -m755 -g 81 -o 81 -d /run/dbus && dbus-uuidgen --ensure && exec /usr/bin/dbus-daemon --system --nofork --nopidfile --print-pid"
+logfile = /var/log/dbus.log
+depends-on = loginready
+
+# seatd
+type = process
+command = /usr/sbin/seatd -g video
+logfile = /var/log/seatd.log
+depends-on = loginready
+```
+
+手动或者通过服务脚本启动这些小服务都很简单，难的地方在于决定依赖关系，谁应该先启动和依赖于谁。这几个小脚本可以参考 [artiX Linux](https://packages.artixlinux.org/packages/system/any/elogind-dinit/) ，[Antix Linux](https://antixlinux.com/) 和 [Chimera Linux](https://chimera-linux.org/docs/configuration/services) 这些发行版的已经打包的服务脚本。`elogind` 服务目前看至少启动到 TTY 和通过 `startx` 或者 `xinit` 启动到图形化界面都并非必须，它和 `seatd` [二选一即可](https://wiki.alpinelinux.org/wiki/Seatd)。
+
 ### the init playground
 
 除了 `runit`， `dinit` 和 good old  `sysVinit` + `openRC` 之外，还有 `finit` 和 `s6`，以及很多这些 `init` 的灵感来源：`daemontools` 和 `daemontools-encore`
@@ -374,6 +466,8 @@ qemu-system-x86_64 -nodefaults -enable-kvm -m 3g -smp 2
 
 - [monit: a watchdog with a toolbox in your container or server](https://mmonit.com/monit/)
 
+- [runit Linux: Complete Guide to Unix Init Scheme with Service Supervision](https://codelucky.com/runit-linux-init-service-supervision/)
+
 - [Daemon Showdown: Upstart vs. Runit vs. Systemd vs. Circus vs. God](https://centos-vn.blogspot.com/2014/06/daemon-showdown-upstart-vs-runit-vs.html) and [HackerNews post](https://news.ycombinator.com/item?id=5345413)
 
 - [Process Supervision: Solved Problem](https://jtimberman.housepub.org/blog/2012/12/29/process-supervision-solved-problem)
@@ -384,7 +478,8 @@ qemu-system-x86_64 -nodefaults -enable-kvm -m 3g -smp 2
 
 - [Void Linux Docs: Services and Daemons - runit](https://docs.voidlinux.org/config/services/index.html)
 
-    
+- [Chimera Linux Documentation: Service management](https://chimera-linux.org/docs/configuration/services)
+  
 
 最后，在写作这篇博文整个过程中我参考了以下文档/博客：
 
