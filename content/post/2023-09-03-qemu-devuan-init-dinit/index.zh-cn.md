@@ -479,7 +479,10 @@ depends-on = loginready
 - [Void Linux Docs: Services and Daemons - runit](https://docs.voidlinux.org/config/services/index.html)
 
 - [Chimera Linux Documentation: Service management](https://chimera-linux.org/docs/configuration/services)
+
+- [Devuan Wiki: Services init and supervision with Runit](https://wiki.devuan.org/?n=Chomwitt.ServiceManagementWithRunit)
   
+- [dinit a new init system](https://antofox.codeberg.page/docs/docs/voidlinux/dinit/)
 
 最后，在写作这篇博文整个过程中我参考了以下文档/博客：
 

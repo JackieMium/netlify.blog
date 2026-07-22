@@ -53,15 +53,17 @@ mySetFigSize(1, 1)
 ```
 prj_home <- '~/Projects'
 prj_dir <- 'ProjectName'
-setwd(file.path(prj_home, prj_dir))
-dir_in <- file.path(getwd(), 'raw_data')
-dir_out <- file.path(getwd(), 'res_data')
-dir_fig <- file.path(getwd(), 'output_plots')
-dir_log <- file.path(getwd(), 'logs')
-if(!(dir.exists(dir_in))) { dir.create(dir_in) }
-if(!(dir.exists(dir_out))) { dir.create(dir_out) }
-if(!(dir.exists(dir_fig))) { dir.create(dir_fig) }
-if(!(dir.exists(dir_log))) { dir.create(dir_log) }
+prj_path <- file.path(prj_home, prj_dir)
+setwd(file.path(prj_path))
+
+dirs <- list(
+  dir_in  = file.path(prj_path, 'raw_data'),
+  dir_out = file.path(prj_path, 'res_data'),
+  dir_fig = file.path(prj_path, 'output_plots')
+)
+for (d in dirs) {
+  dir.create(d, recursive = TRUE, showWarnings = FALSE)
+}
 ```
 
 ## Batch loading packages

@@ -19,6 +19,10 @@ author: ""
 
 [General R notes and tricks](../pages/general-r-notes)
 
+[R/Seurat notes](../pages/r-seurat-snippets)
+
+[Python notes](../pages/python-snippets)
+
 [Xorg and X basic](../pages/b_b001_startx_xinit)
 
 [video driver and output config using xorg.conf files](../pages/b_b002_xorg_conf)
