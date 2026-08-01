@@ -81,6 +81,12 @@ invisible(lapply(pkgs,  \(.) {
 )
 ```
 
+## Unload a package
+
+```
+detach("package:ggplot2", unload = TRUE)
+````
+
 ## A lightweight and sane ggplot2 theme
 
 ```r
@@ -155,3 +161,19 @@ theme_barebone <- function(bssz = 18){
       filters = "hgnc_symbol", values = "TP53", mart = human, 
       attributesL = c("chromosome_name","start_position"), martL = mouse)
   ```
+
+## Add DE column and print DEG numbers for a data.frame
+
+```r
+addUpDownReg <- function(deg = deg, 
+                         thres_logfc = 2, thres_p = 0.05,
+                         pval_col = 'p_val_adj', logfc_col = 'avg_log2FC') {
+    deg$DE = dplyr::case_when(
+        deg[[logfc_col]] > thres_logfc & deg[[pval_col]] < thres_p ~ 'UpReg',
+        deg[[logfc_col]] < -thres_logfc & deg[[pval_col]] < thres_p ~ 'DownReg',
+        TRUE ~ 'NonSig'
+    ) |> factor(levels = c('UpReg', 'DownReg', 'NonSig'))
+    print(table(deg$DE))
+    return(deg)
+}
+```
