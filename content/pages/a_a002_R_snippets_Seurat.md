@@ -15,6 +15,58 @@ reward: false
 contentCopyright: "CC BY-NC-SA 4.0"
 ---
 
+## Add QC metrics and then plot
+
+```
+seurat_obj <- PercentageFeatureSet(seurat_obj, '^MT\\-', col.name = 'pct_mito')
+seurat_obj <- PercentageFeatureSet(seurat_obj, 'RP[SL]', col.name = 'pct_ribo')
+seurat_obj <- PercentageFeatureSet(seurat_obj, 'HB[AB]', col.name = 'pct_hemo')
+seurat_obj = PercentageFeatureSet(seurat_obj, '^Gm|Rik$|^A[CL][[:digit:]]', col.name = 'pct_pred')
+seurat_obj$log10GenesPerUMI <- log10(seurat_obj$nFeature_RNA) / log10(seurat_obj$nCount_RNA)
+
+VlnPlot(seurat_obj, group.by = 'orig.ident', 
+        ncol = 4, pt.size = 0,
+        features = c('nCount_RNA', 'nFeature_RNA', 'pct_mito', 'pct_pred',
+                      'pct_ribo', 'pct_hemo', 'log10GenesPerUMI'), 
+        raster = FALSE) &
+  theme(axis.title.x = element_blank(), axis.text.x.bottom = element_text(size = 6))
+```
+
+
+## Another way to plot QC metrics
+
+```
+par(mfrow = c(2,2), mar = c(5, 4, 1, 1), bty = "n")
+smoothScatter(log10(seurat_obj$nCount_RNA), log10(seurat_obj$nFeature_RNA),
+              xlab = "log10(Library sizes)", ylab = "log10(# of expressed genes)",
+              nrpoints = 500, cex = 0.5)
+smoothScatter(log10(seurat_obj$nCount_RNA), seurat_obj$pct_ribo,
+              xlab = "log10(Library sizes)", ylab = "Ribosome prop. (%)",
+              nrpoints = 500, cex = 0.5)
+abline(h = 10, lty = 1)
+
+smoothScatter(log10(seurat_obj$nCount_RNA), seurat_obj$pct_mito,
+              xlab = "log10(Library sizes)", ylab = "Mitochondrial prop. (%)",
+              nrpoints = 500, cex = 0.5)
+abline(h = 5, lty = 1)
+
+smoothScatter(seurat_obj$pct_ribo, seurat_obj$pct_mito,
+              xlab = "Ribosome prop. (%)", ylab = "Mitochondrial prop. (%)",
+              nrpoints = 500, cex = 0.5)
+abline(h = 5, lty = 1)
+abline(v = 10, lty = 1)
+```
+
+## Tricks to really DietSeurat
+
+```
+seurat_obj@assays$RNA@layers$data <- NULL
+seurat_obj@assays$RNA@layers$scale.data <- NULL
+seurat_obj@assays$RNA@meta.data[, grep('vf|var|vst', colnames(seurat_obj@assays$RNA@meta.data))] <- NULL
+
+seurat_obj@assays$integrated <- NULL
+seurat_obj@assays$mnn.reconstructed <- NULL
+```
 
 ## Convert between Seurat v3 and v5 object
 
@@ -44,6 +96,7 @@ seurat_obj[['umap_new']] <- CreateDimReducObject(
 ## Seurat quick pre-processing
 
 ```
+seurat_obj[['RNA']] <- split(seurat_obj[['RNA']], f = seurat_obj$orig.ident)
 seurat_obj <- seurat_obj |> 
     NormalizeData(verbose = FALSE) |>
     FindVariableFeatures(verbose = FALSE) |> 
@@ -55,18 +108,6 @@ seurat_obj <- IntegrateLayers(
   orig.reduction = 'pca', new.reduction = 'harmony',
   verbose = FALSE
 )
-```
-
-## Overview of Seurat Object QC metrics
-
-```
-options(repr.plot.width = base_len * 3, repr.plot.height = base_len * 1)
-VlnPlot(seurat_obj, group.by = 'cHarmony', cols = apal,
-        pt.size = 0, 
-        features = c('nCount_RNA', 'nFeature_RNA', 'pct_mito', 
-                      'pct_ribo', 'pct_hemo', 'log10GenesPerUMI'),
-        raster = FALSE) &
-  theme(axis.title.x = element_blank(), axis.text.x.bottom = element_text(size = 10))
 ```
 
 ## Highlight a subset of cells in a Seurat Object
@@ -81,29 +122,6 @@ scCustomize::Cell_Highlight_Plot(seurat_obj, highlight_color = 'firebrick1', cel
 )) & NoAxes()
 ```
 
-## Another way to plot QC metrics
-
-```
-par(mfrow = c(2,2), mar = c(5, 4, 1, 1), bty = "n")
-smoothScatter(log10(seurat_obj$nCount_RNA), log10(seurat_obj$nFeature_RNA),
-              xlab = "log10(Library sizes)", ylab = "log10(# of expressed genes)",
-              nrpoints = 500, cex = 0.5)
-smoothScatter(log10(seurat_obj$nCount_RNA), seurat_obj$pct_ribo,
-              xlab = "log10(Library sizes)", ylab = "Ribosome prop. (%)",
-              nrpoints = 500, cex = 0.5)
-abline(h = 10, lty = 1)
-
-smoothScatter(log10(seurat_obj$nCount_RNA), seurat_obj$pct_mito,
-              xlab = "log10(Library sizes)", ylab = "Mitochondrial prop. (%)",
-              nrpoints = 500, cex = 0.5)
-abline(h = 5, lty = 1)
-
-smoothScatter(seurat_obj$pct_ribo, seurat_obj$pct_mito,
-              xlab = "Ribosome prop. (%)", ylab = "Mitochondrial prop. (%)",
-              nrpoints = 500, cex = 0.5)
-abline(h = 5, lty = 1)
-abline(v = 10, lty = 1)
-```
 
 ## Get a gene list from MSigDB
 
